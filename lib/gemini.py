@@ -133,8 +133,12 @@ def _pedir_openrouter(partes, schema, rotulo, modelo, sistema, ao_cobrar, log, t
             raise ErroGemini("o Gemini (OpenRouter) devolveu uma resposta que não é JSON")
     raise ErroGemini("o Gemini (OpenRouter) não conseguiu responder")
 
-def pedir(partes, schema, rotulo="Gemini", modelo=None, sistema=None, ao_cobrar=None, log=None, tentativas=4):
-    """Manda as partes (texto/vídeo/imagem) e devolve o JSON no formato do schema. ao_cobrar(dict) a cada resposta cobrada."""
+def pedir(partes, schema, rotulo="Gemini", modelo=None, sistema=None, ao_cobrar=None, log=None, tentativas=4, motor=None):
+    """Manda as partes (texto/vídeo/imagem) e devolve o JSON no formato do schema. ao_cobrar(dict) a cada resposta cobrada.
+    motor="claude-…": pedido só com imagens feito pelo Claude (⚙ Estudo de B-roll = Claude), sem precisar de chave do Gemini."""
+    if motor and motor.startswith("claude"):
+        import estudo
+        return estudo.olho_claude(partes, schema, rotulo, motor, ao_cobrar=ao_cobrar, log=log)
     modelo = modelo or modelo_padrao()
     if provedor() == "openrouter": return _pedir_openrouter(partes, schema, rotulo, modelo, sistema, ao_cobrar, log, tentativas)
     k = chave_google()
@@ -227,18 +231,18 @@ def achar_trecho(arq, pedido, modelo=None, ao_cobrar=None, log=None):
 
 SCH_ESCOLHA = obj(escolhidos=arr(obj(n=I, porque=S)))
 
-def escolher_videos(folha, lista, pedido, quantos=3, modelo=None, ao_cobrar=None, log=None):
+def escolher_videos(folha, lista, pedido, quantos=3, modelo=None, ao_cobrar=None, log=None, motor=None):
     """Pela folha de capas (cada uma com o número do vídeo) + a lista, quais vale abrir. Uma imagem só: custa centavos."""
     return pedir([imagem(folha),
                   texto(f"Cada capa tem o número do vídeo em cima. Procuro imagem de apoio (B-roll) que mostre: {pedido}\n\n{lista}\n\n"
                         f"Escolha até {quantos} vídeos para abrir, os que têm mais chance de ter essa cena FILMADA (câmera na ação), "
                         "não alguém explicando. Fuja de vídeo-reação, tutorial falado, compilação de memes e canal com marca d'água "
                         "grande. Prefira filmagem limpa, luz boa e canal que produz o próprio material. `n` = o número da capa.")],
-                 SCH_ESCOLHA, rotulo="escolha no YouTube", modelo=modelo, ao_cobrar=ao_cobrar, log=log)
+                 SCH_ESCOLHA, rotulo="escolha no YouTube", modelo=modelo, ao_cobrar=ao_cobrar, log=log, motor=motor)
 
 SCH_TRECHOS = obj(trechos=arr(obj(ini=N, fim=N, descricao=S, tags=arr(S), porque=S)))
 
-def trechos_na_folha(folha, ts, dur, pedido, quantos=2, modelo=None, ao_cobrar=None, log=None):
+def trechos_na_folha(folha, ts, dur, pedido, quantos=2, modelo=None, ao_cobrar=None, log=None, motor=None):
     """Sem assistir o vídeo (bem mais barato): pela folha de quadros com o segundo de cada um, até N trechos de 4 a 10 s.
     Devolve {"trechos": [...]} — lista vazia quando nada serve."""
     qs = ", ".join(f"{t:.0f}s" for t in ts)
@@ -250,7 +254,7 @@ def trechos_na_folha(folha, ts, dur, pedido, quantos=2, modelo=None, ao_cobrar=N
                         "quadros de dentro do trecho têm que ser da mesma cena). Como um quadro não mostra o que acontece entre ele e o "
                         "seguinte, fique dentro de quadros seguidos que sejam claramente a mesma cena limpa. ini/fim em segundos do vídeo, "
                         "dois trechos nunca se sobrepõem. descricao e tags em português (tags minúsculas). Nada serve: devolva lista vazia.")],
-                 SCH_TRECHOS, rotulo="trechos no YouTube", modelo=modelo, ao_cobrar=ao_cobrar, log=log)
+                 SCH_TRECHOS, rotulo="trechos no YouTube", modelo=modelo, ao_cobrar=ao_cobrar, log=log, motor=motor)
 
 SCH_MONTAGEM = obj(ok=B, problemas=arr(obj(segundo=N, o_que=S, gravidade=enum("alta", "media", "baixa"), sugestao=S)))
 

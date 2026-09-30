@@ -131,7 +131,7 @@ table.tab{width:100%;border-collapse:collapse;background:var(--painel);border:1p
 .tab tr.det td{background:#111113;padding:12px 18px 16px}
 .itens{width:100%;border-collapse:collapse;font-size:12px}.itens td{padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.06);color:#d1d1d6}.itens td.n{text-align:right;white-space:nowrap}
 .nw{white-space:nowrap}
-.sv{border-radius:10px;padding:1px 8px;font-size:11px;border:1px solid}.sv.claude{color:#d9a6ff;border-color:#5a3a7a}.sv.apify{color:#8fe3b0;border-color:#24603f}.sv.openai{color:#ffd28a;border-color:#6b5420}
+.sv{border-radius:10px;padding:1px 8px;font-size:11px;border:1px solid}.sv.claude{color:#d9a6ff;border-color:#5a3a7a}.sv.apify{color:#8fe3b0;border-color:#24603f}.sv.openai{color:#ffd28a;border-color:#6b5420}.sv.grok{color:#9ad0ff;border-color:#1f4a6e}.sv.kie{color:#f5b3ff;border-color:#5e2a66}
 .sub-et{display:flex;gap:14px;flex-wrap:wrap;color:var(--sub);font-size:12px;margin-bottom:8px}.sub-et b{color:var(--txt);font-weight:600}
 .notas{color:var(--amar);font-size:12px;margin:0 0 8px}
 .expl{color:var(--sub);font-size:12px;line-height:1.6;margin-top:18px;background:var(--painel);border:1px solid var(--linha);border-radius:14px;padding:14px 18px}
@@ -421,7 +421,7 @@ header.topo{min-height:76px;gap:14px;flex-wrap:nowrap;padding:16px 28px;backgrou
   <div class="marca-linha"><a class="marca" href="#"><span class="marca-icone"><svg class="ic" aria-hidden="true"><use href="#i-broll"/></svg></span>Atlas Editor</a>
     <button class="menu-fechar" type="button" aria-label="Fechar menu" onclick="menuLateral(false)"><svg class="ic" aria-hidden="true"><use href="#i-erro"/></svg></button></div>
   <div class="ws-linha" id="wsLinha" hidden><select id="wsSelect" onchange="wsTrocar(this.value)"></select></div>
-  <nav class="abas" aria-label="Menu principal"><a href="#visao-geral" id="abaVG"><svg class="ic"><use href="#i-visao"/></svg>Visão Geral</a><a href="#" id="abaV"><svg class="ic"><use href="#i-video"/></svg>Vídeos</a><a href="#kanban" id="abaK"><svg class="ic"><use href="#i-kanban"/></svg>Kanban</a><a href="#arquivos" id="abaB"><svg class="ic"><use href="#i-pasta"/></svg>Arquivos</a><a href="#busca" id="abaS"><svg class="ic"><use href="#i-busca"/></svg>Busca de B-roll</a><a href="#templates" id="abaT"><svg class="ic"><use href="#i-molde"/></svg>Templates</a><a href="#custo" id="abaC"><svg class="ic"><use href="#i-cifrao"/></svg>Custo</a></nav>
+  <nav class="abas" aria-label="Menu principal"><a href="#visao-geral" id="abaVG"><svg class="ic"><use href="#i-visao"/></svg>Visão Geral</a><a href="#" id="abaV"><svg class="ic"><use href="#i-video"/></svg>Vídeos</a><a href="#kanban" id="abaK"><svg class="ic"><use href="#i-kanban"/></svg>Kanban</a><a href="#arquivos" id="abaB"><svg class="ic"><use href="#i-pasta"/></svg>Arquivos</a><a href="#busca" id="abaS"><svg class="ic"><use href="#i-busca"/></svg>Busca de B-roll</a><a href="/animado" id="abaAn"><svg class="ic"><use href="#i-video"/></svg>Ad Animado</a><a href="#templates" id="abaT"><svg class="ic"><use href="#i-molde"/></svg>Templates</a><a href="#custo" id="abaC"><svg class="ic"><use href="#i-cifrao"/></svg>Custo</a></nav>
   <div class="lateral-rodape">
     <button type="button" onclick="menuLateral(false);abrirCfg()"><svg class="ic" aria-hidden="true"><use href="#i-config"/></svg>Configurações</button>
     <button type="button" onclick="sair()" title="Encerrar sessão"><svg class="ic" aria-hidden="true"><use href="#i-sair"/></svg>Sair</button>
@@ -453,8 +453,8 @@ header.topo{min-height:76px;gap:14px;flex-wrap:nowrap;padding:16px 28px;backgrou
 </div></div>
 <div class="modal" id="knova"><div class="cx">
   <h2>Nova demanda</h2>
-  <p class="cinza">Envie os anúncios já cortados, com a fala pronta. O B-roll é buscado com a fala de todos juntos;
-    depois cada anúncio segue para Edição, onde você revisa o B-roll e os letreiros no editor.</p>
+  <p class="cinza">Envie os anúncios já cortados, com a fala pronta. Todos sobem juntos, mas passam pelas fases em fila:
+    uma busca de B-roll e uma edição por vez. Depois você revisa o B-roll e os letreiros no editor.</p>
   <p class="kreenvio" id="kReenviosNova" hidden></p>
   <div class="drop" id="dropK" onclick="$('#fK').click()"><b>Arraste os vídeos já cortados aqui</b> ou clique para escolher</div>
   <button type="button" onclick="escolherEnviado('kanban')">Escolher de Arquivos</button>
@@ -478,7 +478,7 @@ header.topo{min-height:76px;gap:14px;flex-wrap:nowrap;padding:16px 28px;backgrou
   <section class="snova" id="sAnuncios" hidden>
     <h2>Buscar B-rolls para anúncios</h2>
     <p class="cinza">Suba um ou vários anúncios. Eles só são transcritos: com a fala de todos juntos, o Claude define as buscas e as categorias,
-      os clipes vêm do TikTok (Apify) e/ou do YouTube (grátis, o Gemini escolhe os trechos), o Gemini estuda cada um, e eles entram nas pastas
+      os clipes vêm do TikTok (Apify) e/ou do YouTube (grátis, a IA do estudo escolhe os trechos), o Gemini estuda cada um, e eles entram nas pastas
       de categoria da oferta com a etiqueta do anúncio.
       Quando você editar esse anúncio, a edição olha primeiro os clipes com a etiqueta dele e depois o resto da oferta.</p>
     <div class="drop" id="dropS" onclick="$('#fS').click()"><b>Arraste os vídeos dos anúncios aqui</b> ou clique para escolher (um ou vários)</div>
@@ -489,7 +489,7 @@ header.topo{min-height:76px;gap:14px;flex-wrap:nowrap;padding:16px 28px;backgrou
       <label><span>Oferta (pasta onde os B-rolls vão ficar)</span><select id="sOferta" onchange="sInfo()"></select></label>
       <label><span>Template de edição (o ritmo que decide quantos B-rolls cada anúncio vai ter)</span><select id="sTpl" onchange="sInfo()"></select></label>
       <label><span>Onde buscar os clipes</span><select id="sFonte" onchange="sInfo()">
-        <option value="youtube">YouTube — busca grátis, o Gemini escolhe os trechos</option>
+        <option value="youtube">YouTube — busca grátis, a IA do estudo escolhe os trechos</option>
         <option value="tiktok">TikTok — Apify (busca e download pagos)</option>
         <option value="ambos">Os dois</option></select></label></div>
     <div class="cinza" id="sInfo"></div>
@@ -594,17 +594,23 @@ header.topo{min-height:76px;gap:14px;flex-wrap:nowrap;padding:16px 28px;backgrou
   <div class="cfgpainel" id="cfgPainel-ia">
     <div class="cfgcard">
       <h4>Claude</h4>
-      <label>Chave da API</label>
-      <div class="lin"><input type="password" id="kA" autocomplete="off" placeholder="sk-ant-…"><button onclick="testar('anthropic')">Testar</button></div>
+      <label>Como usar o Claude</label>
+      <select id="cAuth" onchange="mostraAuthClaude()"></select>
+      <div id="linA"><label>Chave da API</label>
+      <div class="lin"><input type="password" id="kA" autocomplete="off" placeholder="sk-ant-…"></div></div>
+      <div id="linT" hidden><label>Token do Claude Code (opcional — se o teste falhar: rode <code>claude setup-token</code> no Terminal e cole aqui)</label>
+      <div class="lin"><input type="password" id="kT" autocomplete="off" placeholder="sk-ant-oat…"></div></div>
+      <div class="lin" style="margin-top:8px"><button onclick="testar('anthropic')">Testar</button></div>
       <div class="st" id="stA"></div>
       <label>Modelo (decide a edição)</label><select id="mod"></select>
     </div>
     <div class="cfgcard">
       <h4>Gemini</h4>
-      <label>Chave direto no Google (opcional: só se não usar a OpenRouter)</label>
+      <label>Chave da sua conta Google (Google AI Studio) — dá para usar o <b>plano gratuito</b>: entre em aistudio.google.com/apikey com a sua conta, crie a chave num projeto sem cobrança ativada e cole aqui</label>
       <div class="lin"><input type="password" id="kG" autocomplete="off" placeholder="AIza…"><button onclick="testar('gemini')">Testar</button></div>
       <div class="st" id="stG"></div>
       <label>Modelo (se usar)</label><select id="modG"></select>
+      <label style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="gGratis" style="width:auto"> Minha chave é do plano gratuito (o Atlas vai mais devagar para caber no limite por minuto)</label>
     </div>
     <div class="cfgcard">
       <h4>OpenRouter</h4>
@@ -620,6 +626,27 @@ header.topo{min-height:76px;gap:14px;flex-wrap:nowrap;padding:16px 28px;backgrou
   </div>
 
   <div class="cfgpainel" id="cfgPainel-integ" hidden>
+    <div class="cfgcard">
+      <h4>IA generativa (Ad Animado)</h4>
+      <label>IA padrão das imagens (dá para trocar em cada ad)</label>
+      <select id="genI"></select>
+      <label>IA padrão dos vídeos (dá para trocar em cada ad)</label>
+      <select id="genV"></select>
+      <select id="genP" hidden></select>
+      <label style="margin-top:14px"><b>Grok</b> — como conectar</label>
+      <select id="genA" onchange="$('#linX').hidden=this.value!='api'"></select>
+      <div id="linX"><label>Chave da API da xAI</label>
+      <div class="lin"><input type="password" id="kX" autocomplete="off" placeholder="xai-…"></div></div>
+      <div class="lin" style="margin-top:8px"><button onclick="testar('xai')">Testar a conexão</button></div>
+      <div class="st" id="stX"></div>
+      <label>Modelo das imagens do Grok</label>
+      <select id="genM"></select>
+      <label style="margin-top:14px"><b>KIE</b> (kie.ai — Nano Banana, Seedream, GPT Image, Kling, Seedance, Hailuo, Wan, Veo…) — chave da API</label>
+      <div class="lin"><input type="password" id="kK" autocomplete="off" placeholder="chave da KIE…"><button onclick="testar('kie')">Testar</button></div>
+      <div class="st" id="stK"></div>
+      <label>Resolução dos vídeos</label>
+      <select id="genR"></select>
+    </div>
     <div class="cfgcard">
       <h4>Apify</h4>
       <label>Token (busca de B-roll no TikTok)</label>
@@ -867,23 +894,36 @@ function cfgAba(nome){
 }
 async function abrirCfg(){CFG=await (await fetch("/api/config")).json();mostraCfg();cfgAba("ia");$("#stA").textContent=$("#stP").textContent=$("#stG").textContent="";$("#cfg").classList.add("on");await wsCarregar();wsDesenhaAdmin()}
 function mostraCfg(){
-  $("#kA").value="";$("#kP").value="";$("#kG").value="";$("#kO").value="";$("#kAI").value="";$("#kHG").value="";
+  $("#kA").value="";$("#kP").value="";$("#kG").value="";$("#kO").value="";$("#kAI").value="";$("#kHG").value="";$("#kX").value="";
+  $("#kX").placeholder=CFG.xai&&CFG.xai.ok?`configurada (${CFG.xai.final}) · cole outra para trocar`:"xai-…";
+  $("#genP").innerHTML=(CFG.gerativas||[]).map(g=>`<option value="${g.id}" ${g.id==CFG.gen_provedor?"selected":""}>${esc(g.nome)}</option>`).join("");
+  $("#kK").value="";$("#kK").placeholder=CFG.kie&&CFG.kie.ok?(CFG.kie.detectada?`achei a sua chave neste computador (${CFG.kie.final}) · cole outra para trocar`:`configurada (${CFG.kie.final}) · cole outra para trocar`):"chave da KIE (kie.ai › API Key)…";
+  $("#genI").innerHTML=(CFG.modelos_imagem||[]).map(m=>`<option value="${m.id}" ${m.id==CFG.gen_img?"selected":""}>${esc(m.nome)}</option>`).join("");
+  $("#genV").innerHTML=(CFG.modelos_video||[]).map(m=>`<option value="${m.id}" ${m.id==CFG.gen_video?"selected":""}>${esc(m.nome)}${m.audio?" · com áudio":""}${m.final?" · quadro inicial e final":""}</option>`).join("");
+  $("#genA").innerHTML=(CFG.auths||[]).map(a=>`<option value="${a.id}" ${a.id==CFG.gen_auth?"selected":""}>${esc(a.nome)}</option>`).join("");$("#linX").hidden=CFG.gen_auth!="api";
+  $("#genM").innerHTML=(CFG.modelos_img||[]).map(m=>`<option value="${m.id}" ${m.id==CFG.gen_modelo_img?"selected":""}>${esc(m.nome)}</option>`).join("");
+  if(CFG.gen_auth=="assinatura"&&!$("#stX").textContent)$("#stX").textContent=CFG.assinatura_ok?"login do Grok encontrado neste Mac":"não achei o login do Grok: rode `grok` no Terminal uma vez e entre com a sua conta";
+  $("#genR").innerHTML=(CFG.resolucoes||[]).map(r=>`<option value="${r.id}" ${r.id==CFG.gen_resolucao?"selected":""}>${esc(r.nome)}</option>`).join("");
   $("#kO").placeholder=CFG.openrouter&&CFG.openrouter.ok?`configurada (${CFG.openrouter.final}) · cole outra para trocar`:"sk-or-…";
+  $("#gGratis").checked=!!CFG.gemini_gratis;
   $("#kG").placeholder=CFG.gemini.ok?`configurada (${CFG.gemini.final}) · cole outra para trocar`:"AIza…";
   $("#modE").innerHTML=(CFG.estudos||[]).map(m=>`<option value="${m.id}" ${m.id==CFG.modelo_estudo?"selected":""}>${esc(m.nome)}</option>`).join("");
   $("#modG").innerHTML=CFG.modelos_gemini.map(m=>`<option value="${m.id}" ${m.id==CFG.modelo_gemini?"selected":""}>${esc(m.nome)}</option>`).join("");
+  $("#cAuth").innerHTML=(CFG.auths_claude||[]).map(a=>`<option value="${a.id}" ${a.id==CFG.claude_auth?"selected":""}>${esc(a.nome)}</option>`).join("");mostraAuthClaude();
+  $("#kT").value="";$("#kT").placeholder=CFG.claude_token&&CFG.claude_token.ok?`configurado (${CFG.claude_token.final}) · cole outro para trocar`:"sk-ant-oat…";
   $("#kA").placeholder=CFG.anthropic.ok?`configurada (${CFG.anthropic.final}) · cole outra para trocar`:"sk-ant-…";
   $("#kP").placeholder=CFG.apify.ok?`configurado (${CFG.apify.final}) · cole outro para trocar`:"apify_api_…";
   $("#kAI").placeholder=CFG.openai&&CFG.openai.ok?`configurada (${CFG.openai.final}) · cole outra para trocar`:"sk-…";
   $("#kHG").placeholder=CFG.heygen&&CFG.heygen.ok?`configurada (${CFG.heygen.final}) · cole outra para trocar`:"chave do HeyGen…";
   $("#mod").innerHTML=CFG.modelos.map(m=>`<option value="${m.id}" ${m.id==CFG.modelo?"selected":""}>${esc(m.nome)}</option>`).join("");
 }
+function mostraAuthClaude(){const a=$("#cAuth").value=="assinatura";$("#linA").hidden=a;$("#linT").hidden=!a}
 async function salvarCfg(fecha){
-  CFG=await post("/api/config",{anthropic:$("#kA").value.trim(),gemini:$("#kG").value.trim(),openrouter:$("#kO").value.trim(),apify:$("#kP").value.trim(),openai:$("#kAI").value.trim(),heygen:$("#kHG").value.trim(),modelo:$("#mod").value,modelo_gemini:$("#modG").value,modelo_estudo:$("#modE").value});mostraCfg();
+  CFG=await post("/api/config",{claude_auth:$("#cAuth").value,claude_token:$("#kT").value.trim(),anthropic:$("#kA").value.trim(),gemini:$("#kG").value.trim(),openrouter:$("#kO").value.trim(),apify:$("#kP").value.trim(),openai:$("#kAI").value.trim(),heygen:$("#kHG").value.trim(),xai:$("#kX").value.trim(),gen_provedor:$("#genP").value,gen_resolucao:$("#genR").value,gen_auth:$("#genA").value,gen_modelo_img:$("#genM").value,kie:$("#kK").value.trim(),gen_img:$("#genI").value,gen_video:$("#genV").value,modelo:$("#mod").value,modelo_gemini:$("#modG").value,gemini_gratis:$("#gGratis").checked,modelo_estudo:$("#modE").value});mostraCfg();
   if(fecha)fecharM("cfg");
 }
 async function testar(qual){
-  const st=qual=="anthropic"?$("#stA"):qual=="gemini"?$("#stG"):qual=="openrouter"?$("#stO"):qual=="openai"?$("#stAI"):qual=="heygen"?$("#stHG"):$("#stP");st.className="st";st.textContent="testando…";
+  const st=qual=="anthropic"?$("#stA"):qual=="gemini"?$("#stG"):qual=="openrouter"?$("#stO"):qual=="openai"?$("#stAI"):qual=="heygen"?$("#stHG"):qual=="xai"?$("#stX"):qual=="kie"?$("#stK"):$("#stP");st.className="st";st.textContent="testando…";
   try{await salvarCfg(false);const r=await post("/api/config/testar?qual="+qual);st.className="st "+(r.ok?"ok":"no");st.textContent=r.msg}
   catch(e){st.className="st no";st.textContent=e.message}
 }
@@ -959,9 +999,9 @@ function mudaCot(v){try{localStorage.setItem("estudio.cotacao",v)}catch(e){}cust
 function abreC(s){abertosC.has(s)?abertosC.delete(s):abertosC.add(s);custo()}
 function detalhe(p){
   const porEt={};p.itens.forEach(i=>{porEt[i.etapa||""]=(porEt[i.etapa||""]||0)+i.usd});
-  const linhas=p.itens.map(i=>`<tr><td class="nw">${esc(dataCurta(i.quando))}</td><td><span class="sv ${i.servico}">${{claude:"Claude",apify:"Apify",gemini:"Gemini",openai:"OpenAI"}[i.servico]||i.servico}</span></td>
+  const linhas=p.itens.map(i=>`<tr><td class="nw">${esc(dataCurta(i.quando))}</td><td><span class="sv ${i.servico}">${{claude:"Claude",apify:"Apify",gemini:"Gemini",openai:"OpenAI",grok:"Grok",kie:"KIE"}[i.servico]||i.servico}</span></td>
     <td class="nw">${esc(ETAPA[i.etapa]||i.etapa||"")}</td><td>${esc(i.rotulo||"")}</td>
-    <td class="cinza">${i.servico=="claude"?`${mil(i.entrada)} entrada · ${mil(i.saida)} saída${i.cache_leitura?` · ${mil(i.cache_leitura)} do cache`:""}${i.cache_escrita?` · ${mil(i.cache_escrita)} p/ cache`:""} · ${esc(i.modelo)}`:i.servico=="gemini"?`${mil(i.entrada)} entrada (vídeo) · ${mil(i.saida)} saída · ${esc(i.modelo)}`:i.servico=="openai"?`${mil(i.saida)} tokens de imagem · ${esc(i.modelo)}`:`${i.resultados??"?"} resultados${i.status&&i.status!="SUCCEEDED"?` · ${esc(i.status)}`:""}`}</td>
+    <td class="cinza">${i.servico=="claude"?`${mil(i.entrada)} entrada · ${mil(i.saida)} saída${i.cache_leitura?` · ${mil(i.cache_leitura)} do cache`:""}${i.cache_escrita?` · ${mil(i.cache_escrita)} p/ cache`:""} · ${esc(i.modelo)}`:i.servico=="gemini"?`${mil(i.entrada)} entrada (vídeo) · ${mil(i.saida)} saída · ${esc(i.modelo)}`:i.servico=="openai"?`${mil(i.saida)} tokens de imagem · ${esc(i.modelo)}`:i.servico=="grok"||i.servico=="kie"?`${esc(i.modelo||"")}${i.estimado?(i.servico=="kie"?" · estimado pelos créditos":" · estimado pela tabela"):""}`:`${i.resultados??"?"} resultados${i.status&&i.status!="SUCCEEDED"?` · ${esc(i.status)}`:""}`}</td>
     <td class="n">${usd(i.usd,3)}</td></tr>`).join("");
   return `${p.notas.length?`<div class="notas">${p.notas.map(esc).join("<br>")}</div>`:""}
     ${Object.keys(porEt).length?`<div class="sub-et">${Object.entries(porEt).map(([e,v])=>`<span>${esc(ETAPA[e]||e)}: <b>${usd(v)}</b></span>`).join("")}</div>`:""}
@@ -977,16 +1017,17 @@ async function custo(){
       <div class="card"><span>Claude (API)</span><b>${usd(T.claude)}</b><em>${cot?`≈ R$ ${num(T.claude*cot)}`:"decisões da edição"}</em></div>
       <div class="card"><span>Apify (B-roll do TikTok)</span><b>${usd(T.apify)}</b><em>${cot?`≈ R$ ${num(T.apify*cot)}`:"buscas de B-roll"}</em></div>
       <div class="card"><span>Gemini (opcional)</span><b>${usd(T.gemini)}</b><em>${cot?`≈ R$ ${num(T.gemini*cot)}`:"estudo dos B-rolls e conferência"}</em></div>
+      <div class="card"><span>IA generativa (Ad Animado)</span><b>${usd((T.grok||0)+(T.kie||0))}</b><em>${cot?`≈ R$ ${num(((T.grok||0)+(T.kie||0))*cot)}`:"Grok e KIE: imagens e vídeos"}</em></div>
       <div class="card"><span>Vídeos</span><b>${PV.length}</b><em>${nv} versões · média ${usd(PV.length?T.total/PV.length:0)} por vídeo</em></div>
     </div>
     <div class="cot">Cotação do dólar para ver em reais (opcional): <input id="cot" value="${cot?String(cot).replace(".",","):""}" placeholder="ex.: 5,40" onchange="mudaCot(this.value)"></div>
-    <div class="tabela-rolagem" role="region" aria-label="Custos por vídeo" tabindex="0"><table class="tab"><thead><tr><th>Vídeo</th><th>Criado</th><th>Versões</th><th class="n">Claude</th><th class="n">Gemini</th><th class="n">Apify</th><th class="n">Total</th></tr></thead><tbody>
+    <div class="tabela-rolagem" role="region" aria-label="Custos por vídeo" tabindex="0"><table class="tab"><thead><tr><th>Vídeo</th><th>Criado</th><th>Versões</th><th class="n">Claude</th><th class="n">Gemini</th><th class="n">Apify</th><th class="n">IA generativa</th><th class="n">Total</th></tr></thead><tbody>
     ${P.map(p=>{if(p.editando)ativo=true;const ab=abertosC.has(p.slug);
       return `<tr class="lin" onclick="abreC('${jsesc(p.slug)}')"><td><b>${ab?"▾":"▸"} ${esc(p.nome)}</b>${p.editando?` <span class="estado rodando">editando</span>`:""}</td>
-        <td class="cinza nw">${esc(dataCurta(p.criado))}</td><td class="cinza">${p.chat?"—":p.versoes.length}</td><td class="n">${claudeCell(p)}</td><td class="n">${usd(p.resumo.gemini||0)}</td><td class="n">${usd(p.resumo.apify)}</td>
+        <td class="cinza nw">${esc(dataCurta(p.criado))}</td><td class="cinza">${p.chat?"—":p.versoes.length}</td><td class="n">${claudeCell(p)}</td><td class="n">${usd(p.resumo.gemini||0)}</td><td class="n">${usd(p.resumo.apify)}</td><td class="n">${usd((p.resumo.grok||0)+(p.resumo.kie||0))}</td>
         <td class="n"><b>${usd(p.resumo.total)}</b>${reais(p.resumo.total)}</td></tr>
-        ${ab?`<tr class="det"><td colspan="7">${detalhe(p)}</td></tr>`:""}`}).join("")||`<tr><td colspan="7" class="cinza">Nenhum vídeo ainda.</td></tr>`}
-    </tbody><tfoot><tr><td>Total</td><td></td><td>${nv}</td><td class="n">${usd(T.claude)}</td><td class="n">${usd(T.gemini||0)}</td><td class="n">${usd(T.apify)}</td><td class="n">${usd(T.total)}${reais(T.total)}</td></tr></tfoot></table></div>
+        ${ab?`<tr class="det"><td colspan="8">${detalhe(p)}</td></tr>`:""}`}).join("")||`<tr><td colspan="8" class="cinza">Nenhum vídeo ainda.</td></tr>`}
+    </tbody><tfoot><tr><td>Total</td><td></td><td>${nv}</td><td class="n">${usd(T.claude)}</td><td class="n">${usd(T.gemini||0)}</td><td class="n">${usd(T.apify)}</td><td class="n">${usd((T.grok||0)+(T.kie||0))}</td><td class="n">${usd(T.total)}${reais(T.total)}</td></tr></tfoot></table></div>
     <div class="expl"><b>De onde vêm os números.</b>
       <b>Claude:</b> a API informa em cada resposta os tokens exatos (entrada, saída, cache); o valor é esse número × o preço de tabela do modelo
       (${Object.entries(D.precos).filter(([k])=>/opus-5|sonnet-5/.test(k)).map(([k,v])=>`${k}: US$ ${num(v.entrada)} entrada / US$ ${num(v.saida)} saída por milhão`).join("; ")}; cache: escrita 1,25×, leitura 0,1×).
@@ -994,6 +1035,8 @@ async function custo(){
       <b>Apify:</b> é o valor que a própria Apify registrou em cada corrida; no plano mensal ele sai do crédito incluído no plano.
       <b>Gemini:</b> tokens que a API informa em cada vídeo assistido × preço de tabela
       (${Object.entries(D.precos_gemini||{}).filter(([k])=>/3\.8-flash|3\.5-flash-lite|pro/.test(k)).map(([k,v])=>`${k}: US$ ${num(v.entrada)} / US$ ${num(v.saida)} por milhão`).join("; ")}); um clipe de 20 s custa ~US$ 0,01.
+      <b>KIE:</b> os créditos que a KIE registra em cada geração × ~US$ 0,005 por crédito (estimativa pelo pacote de US$ 5 = 1.000 créditos).
+      <b>Grok:</b> pela assinatura sai da cota semanal (US$ 0); pela chave de API, o valor que a xAI devolve em cada geração; quando ela não devolve, a estimativa pela tabela (imagem ~US$ 0,05; vídeo por segundo: 480p US$ 0,08 · 720p US$ 0,14 · 1080p US$ 0,25).
       <b>Transcrição, recorte da pessoa e render</b> rodam no servidor, sem cobrança por chamada de API. Edições e templates novos feitos no Claude Code (app/terminal) saem do plano do Claude Code, não da API.</div>`;
   clearTimeout(timerC);if(ativo&&!$("#custo").hidden)timerC=setTimeout(custo,5000);
 }

@@ -56,7 +56,7 @@ class KanbanSemCortes(unittest.TestCase):
         self.assertNotIn("novas", dict(kanban.COLUNAS))
         with self.assertRaises(ValueError): kanban.mover([c["id"]], "cortes")
         with self.assertRaises(ValueError): kanban.mover([c["id"]], "novas")
-        self.assertEqual(kanban.proximo(kanban.ler()), [("lote", c["lote"])])
+        self.assertEqual(kanban.proximo(kanban.ler()), [("card", c["id"])])
         kanban.mover([c["id"]], "edicao")
         self.assertEqual(kanban.proximo(kanban.ler()), [("card", c["id"])])
 
@@ -80,47 +80,43 @@ class KanbanSemCortes(unittest.TestCase):
         kanban.mover([c["id"]], "broll")
         self.assertEqual(kanban.ler()["cards"][c["id"]]["estado"], "espera")
 
-    def test_two_ready_edicao_cards_run_truly_concurrently(self):
-        a = self.criar(nome="A"); b = self.criar(nome="B")
-        kanban.mover([a["id"], b["id"]], "edicao")
-        marcas = []
-        portao = threading.Barrier(2, timeout=15)  # só destrava quando os DOIS já chegaram aqui ao mesmo tempo
-
-        def trabalho(col, lote, card, log):
-            marcas.append(("inicio", card["nome"]))
-            portao.wait()
-            marcas.append(("fim", card["nome"]))
-
-        with patch.object(kanban, "fase_projeto", side_effect=trabalho):
-            n = kanban.lancar_prontos(log=lambda _: None)
-            self.assertEqual(n, 2)
-            limite = time.monotonic() + 15
-            # len(marcas)==4 só prova que as DUAS trabalho() retornaram — não que a gravação final (mexer(), depois
-            # do portão) já aconteceu nas duas threads. Espera o estado real do card, não o marcador do mock.
-            while any(kanban.ler()["cards"][i]["estado"] == "rodando" for i in (a["id"], b["id"])) and time.monotonic() < limite:
-                time.sleep(0.01)
-        self.assertEqual(len(marcas), 4)
-        self.assertEqual({m[1] for m in marcas if m[0] == "fim"}, {"A", "B"})
-        q = kanban.ler()
-        self.assertEqual(q["cards"][a["id"]]["estado"], "ok")
-        self.assertEqual(q["cards"][b["id"]]["estado"], "ok")
-
-    def test_lancar_prontos_never_exceeds_concurrency_limit(self):
+    def test_edicao_runs_one_card_at_a_time_in_queue_order(self):
         cards = [self.criar(nome=n) for n in ("A", "B", "C")]
         ids = [c["id"] for c in cards]
         kanban.mover(ids, "edicao")
         bloqueio = threading.Event()
         trabalho = lambda col, lote, card, log: bloqueio.wait(15)
-        with patch.object(kanban, "LIMITE_CONCORRENCIA", 2), patch.object(kanban, "fase_projeto", side_effect=trabalho):
-            self.assertEqual(kanban.lancar_prontos(log=lambda _: None), 2)
+        with patch.object(kanban, "LIMITE_CONCORRENCIA", 3), patch.object(kanban, "fase_projeto", side_effect=trabalho):
+            self.assertEqual(kanban.lancar_prontos(log=lambda _: None), 1)
             time.sleep(0.05)
-            self.assertEqual(sorted(kanban.ler()["cards"][i]["estado"] for i in ids), ["espera", "rodando", "rodando"])
-            self.assertEqual(kanban.lancar_prontos(log=lambda _: None), 0)  # ainda sem vaga: não estoura o limite
+            self.assertEqual([kanban.ler()["cards"][i]["estado"] for i in ids], ["rodando", "espera", "espera"])
+            self.assertEqual(kanban.lancar_prontos(log=lambda _: None), 0)  # fila: a edição seguinte espera
             bloqueio.set()
             limite = time.monotonic() + 15
-            while any(kanban.ler()["cards"][i]["estado"] == "rodando" for i in ids) and time.monotonic() < limite:
+            while kanban.ler()["cards"][ids[0]]["estado"] == "rodando" and time.monotonic() < limite:
                 time.sleep(0.01)
-        self.assertEqual([kanban.ler()["cards"][i]["estado"] for i in ids[:2]], ["ok", "ok"])
+        self.assertEqual(kanban.ler()["cards"][ids[0]]["estado"], "ok")
+        self.assertEqual(kanban.proximo(kanban.ler()), [("card", ids[1])])
+
+    def test_lot_with_many_ads_searches_broll_one_ad_at_a_time(self):
+        lid = kanban.criar_lote("Lote", "Expert", "Oferta", "ultradinamico",
+                                 [(n, str(self.video_new)) for n in ("Ad 1", "Ad 2", "Ad 3")])
+        ids = sorted((c["id"] for c in kanban.ler()["cards"].values() if c["lote"] == lid), key=lambda i: int(i[1:]))
+        buscados = []
+        with patch.object(kanban, "fase_broll", side_effect=lambda lote, cards, log: buscados.append([c["id"] for c in cards])):
+            for _ in ids: kanban.passo(log=lambda _: None)
+        self.assertEqual(buscados, [[i] for i in ids])  # um anúncio por busca, na ordem de criação
+        self.assertTrue(all(kanban.ler()["cards"][i]["coluna"] == "edicao" for i in ids))
+
+    def test_broll_and_edicao_run_side_by_side_but_one_each(self):
+        lid = kanban.criar_lote("Lote", "Expert", "Oferta", "ultradinamico",
+                                 [(n, str(self.video_new)) for n in ("Ad 1", "Ad 2", "Ad 3")])
+        ids = sorted((c["id"] for c in kanban.ler()["cards"].values() if c["lote"] == lid), key=lambda i: int(i[1:]))
+        with kanban.mexer() as q: q["cards"][ids[0]].update(coluna="edicao")
+        q = kanban.ler()
+        self.assertEqual(kanban.proximo(q, 5), [("card", ids[1]), ("card", ids[0])])
+        with kanban.mexer() as q: q["cards"][ids[1]].update(estado="rodando")
+        self.assertEqual(kanban.proximo(kanban.ler(), 5), [("card", ids[0])])  # Ad 3 espera a busca do Ad 2
 
     def test_render_never_runs_more_than_one_at_a_time(self):
         cards = [self.criar(nome=n) for n in ("A", "B")]
@@ -197,7 +193,7 @@ class KanbanSemCortes(unittest.TestCase):
         self.assertEqual(kanban.migrar_fluxo_sem_cortes(), [c["id"]])
         x = kanban.ler()["cards"][c["id"]]
         self.assertEqual((x["coluna"], x["estado"]), ("broll", "espera"))
-        self.assertEqual(kanban.proximo(kanban.ler()), [("lote", c["lote"])])
+        self.assertEqual(kanban.proximo(kanban.ler()), [("card", c["id"])])
         self.assertEqual(kanban.migrar_fluxo_sem_cortes(), [])
 
     def test_mixed_lot_never_sends_replacement_to_broll_search(self):

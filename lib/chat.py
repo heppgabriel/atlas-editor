@@ -1,4 +1,4 @@
-"""Chat do Estúdio: o mesmo Claude Code desta máquina (Claude Agent SDK), pago pela chave da API do ⚙.
+"""Chat do Estúdio: o mesmo Claude Code desta máquina (Claude Agent SDK), pago pela chave da API do ⚙ ou pela sua assinatura.
 
 Um processo por conversa, rodando no Python da .venv da skill:
     .venv/bin/python lib/chat.py <pasta da conversa>
@@ -81,10 +81,13 @@ async def rodar(C):
     from claude_agent_sdk import (ClaudeSDKClient, ClaudeAgentOptions, PermissionResultAllow, PermissionResultDeny,
                                   AssistantMessage, UserMessage, SystemMessage, ResultMessage, StreamEvent,
                                   TextBlock, ThinkingBlock, ToolUseBlock, ToolResultBlock)
-    K = chaves.ler(); chave = K.get("anthropic") or ""
-    if not chave: C.evento("erro", txt="Configure a chave da API do Claude no ⚙ da tela inicial."); return
+    K = chaves.ler(); chave = K.get("anthropic") or ""; assinatura = K.get("claude_auth") == "assinatura"
+    if not chave and not assinatura: C.evento("erro", txt="Configure o Claude no ⚙ da tela inicial (chave da API ou a sua assinatura)."); return
     limpa_ambiente()
-    env = dict(ANTHROPIC_API_KEY=chave, CLAUDE_CODE_ENABLE_ASK_USER_QUESTION_TOOL="true", CLAUDE_AGENT_SDK_CLIENT_APP="estudio-edicao/1.0")
+    env = dict(CLAUDE_CODE_ENABLE_ASK_USER_QUESTION_TOOL="true", CLAUDE_AGENT_SDK_CLIENT_APP="estudio-edicao/1.0")
+    if assinatura:                                        # o plano do Claude pelo login do Claude Code (ou o token do setup-token)
+        if K.get("claude_token"): env["CLAUDE_CODE_OAUTH_TOKEN"] = K["claude_token"]
+    else: env["ANTHROPIC_API_KEY"] = chave
     if os.environ.get("ESTUDIO_CHAT_API"): env["ANTHROPIC_BASE_URL"] = os.environ["ESTUDIO_CHAT_API"]      # testes: API falsa
     pend = {}                                             # pedidos de permissão/pergunta esperando a tela
     loop = asyncio.get_running_loop()

@@ -1,0 +1,232 @@
+{
+ "nome": "Dividida Karaokê",
+ "descricao": "Anúncio educacional de saúde com o expert em cima e o B-roll embaixo (dividida invertida) quase o vídeo todo, legenda itálica branca com a palavra falada em amarelo na emenda da tela, letreiros condensados em caixa alta e ritmo rápido (mediana medida de 2,5 s por bloco).",
+ "fontes": {
+  "cond": {
+   "arquivo": "fontes/Anton-Regular.ttf",
+   "indice": 0,
+   "css": "400 {px}px Anton"
+  },
+  "italica": {
+   "arquivo": "fontes/Poppins-BoldItalic.ttf",
+   "indice": 0,
+   "css": "italic 700 {px}px Poppins"
+  }
+ },
+ "letreiro": {
+  "entrada": 0.12,
+  "largura_max": 0.86,
+  "topo_padrao": 0.3,
+  "estilos": {
+   "branca": {
+    "rotulo": "Branca condensada",
+    "familia": "cond",
+    "px": 92,
+    "cor": [255, 255, 255],
+    "tracking": 0.0,
+    "efeito": "contorno"
+   },
+   "amarela": {
+    "rotulo": "Amarela condensada (chave)",
+    "familia": "cond",
+    "px": 92,
+    "cor": [243, 198, 13],
+    "tracking": 0.0,
+    "efeito": "contorno"
+   },
+   "grande": {
+    "rotulo": "Palavra única grande",
+    "familia": "cond",
+    "px": 120,
+    "cor": [255, 255, 255],
+    "tracking": 0.0,
+    "efeito": "sombra"
+   },
+   "vermelha": {
+    "rotulo": "Vermelha (problema)",
+    "familia": "cond",
+    "px": 92,
+    "cor": [235, 35, 45],
+    "tracking": 0.0,
+    "efeito": "brilho_escuro"
+   },
+   "verde": {
+    "rotulo": "Verde (solução)",
+    "familia": "cond",
+    "px": 92,
+    "cor": [70, 235, 45],
+    "tracking": 0.0,
+    "efeito": "brilho_escuro"
+   }
+  },
+  "efeitos": {
+   "contorno": [
+    [0, 0, 0, 1.0, 3, 0],
+    [0, 0, 0, 0.8, 8, 3]
+   ],
+   "sombra": [
+    [0, 0, 0, 0.9, 5, 0],
+    [0, 0, 0, 0.6, 18, 4]
+   ],
+   "brilho_escuro": [
+    [0, 0, 0, 1.0, 3, 0],
+    [0, 0, 0, 0.7, 16, 2]
+   ]
+  },
+  "_efeitos_formato": "cada camada: r, g, b, alfa, blur (× px/100), deslocamento y (× px/100); a última camada é sempre o texto na cor do estilo"
+ },
+ "legenda": {
+  "familia": "italica",
+  "tam": 77,
+  "tracking": 0.0,
+  "pad": 30,
+  "karaoke": true,
+  "destaque": [253, 253, 0],
+  "contorno": [0, 0, 0, 1.0, 4],
+  "sombras": [
+   [0, 0, 0, 0.6, 6, 3]
+  ],
+  "x": 0.5,
+  "y": 0.545,
+  "max_palavras": 3,
+  "max_caracteres": 20,
+  "segura": 0.2,
+  "largura_max": 0.9,
+  "canto_x": [0.5, 0.5],
+  "canto_dy": 0.0,
+  "dividida_dy": 0.0
+ },
+ "zoom": {
+  "alterna": [1.0, 1.03],
+  "punch": 0.05,
+  "estilos_punch": ["amarela", "grande", "vermelha", "verde"],
+  "ancora": [0.5, 0.35],
+  "escuro_push": 0,
+  "min_movimento": 2.5,
+  "punch_subida": 0.12,
+  "punch_intervalo": 2.0
+ },
+ "transicao": {
+  "entrada": 0.1,
+  "saida": 0.08
+ },
+ "escuro": {
+  "entra": 0.17,
+  "sai": 0.1,
+  "centro": [0.5, 0.4],
+  "raio": [0.4, 0.3],
+  "piso": 0.18,
+  "forca": 0.72
+ },
+ "pb": {
+  "entra": 0.1,
+  "sai": 0.07,
+  "contraste": 1.1
+ },
+ "cheia": {
+  "push": 0.03
+ },
+ "canto": {
+  "escala": 0.62,
+  "x": [0.3, 0.7],
+  "escurecer": 0.95,
+  "contorno": 0,
+  "sombra_blur": 18,
+  "sombra_alpha": 0.5,
+  "borda_suave": 1.5,
+  "enquadra": "busto",
+  "ar_cabeca": 0.02,
+  "topo_max": 0.5,
+  "folga_cintura": 0.05,
+  "altura_min": 0.4,
+  "cintura_por_pescoco": 2.1,
+  "busto_aprox": 0.76,
+  "margem_ombros": 0.35
+ },
+ "dividida": {
+  "escurece_antes": 0.35,
+  "folga_cabeca": 0.035,
+  "fusao": 0
+ },
+ "card": {
+  "largura_max": 0.88,
+  "altura_max": 0.46,
+  "topo": 0.075,
+  "raio": 0.07,
+  "sombra_blur": 22,
+  "sombra_alpha": 0.55,
+  "entrada": 0.22,
+  "aspecto_min": 1.0
+ },
+ "flash": {
+  "duracao": 0.1
+ },
+ "regras": {
+  "min_dur": {
+   "dividida": 1.2,
+   "cheia": 0.7,
+   "canto": 2.0
+  },
+  "respiro": 0.6,
+  "encadeia": [
+   ["dividida", "dividida"],
+   ["dividida", "cheia"],
+   ["cheia", "dividida"],
+   ["cheia", "cheia"],
+   ["canto", "canto"]
+  ],
+  "max_encadeadas": 10,
+  "letreiro_sobre_broll": true,
+  "empilha_ok_emoji": [],
+  "letreiro_apos_broll": 0,
+  "max_blocos_juntos": 1,
+  "linhas_max": 2,
+  "escuro_sobre_broll": false,
+  "letreiro_dur_max": 2.5,
+  "palavras_max": 5,
+  "max_sem_broll": 6,
+  "min_fora_da_cheia": 0.5
+ },
+ "conferencia": {
+  "max_sem_letreiro": 12,
+  "max_sem_broll": 6
+ },
+ "modo": "broll_primeiro",
+ "processo": [
+  {
+   "titulo": "Transcreve o anúncio",
+   "detalhe": "A fala palavra por palavra, com o tempo de cada uma, que também alimenta a legenda karaokê."
+  },
+  {
+   "titulo": "Cortes",
+   "detalhe": "O Claude confere silêncios e erros de fala; com roteiro, fica a última tomada boa."
+  },
+  {
+   "titulo": "Busca os B-rolls",
+   "detalhe": "Anatomia 3D, micro-organismos e cotidiano ligados à fala (ver BUSCA.md). Um B-roll a cada 2 a 3 s de fala, sem forçar clipe fraco."
+  },
+  {
+   "titulo": "Montagem no formato",
+   "detalhe": "Quase tudo em dividida invertida (expert em cima, B-roll embaixo, emenda reta), abertura em canto sobre anatomia, palavras de mecanismo em cheia com letreiro grande."
+  },
+  {
+   "titulo": "Letreiros e efeitos sonoros",
+   "detalhe": "Letreiro condensado em caixa alta só nas palavras-chave (amarela, vermelha para o problema, verde para a solução); som padrão automático."
+  },
+  {
+   "titulo": "Regras do modelo",
+   "detalhe": "Conferência automática das regras do template; o que quebrar, o Claude corrige."
+  },
+  {
+   "titulo": "Render",
+   "detalhe": "O vídeo final. O que não gostar, troca no editor."
+  }
+ ],
+ "usa": {
+  "letreiro": true,
+  "formatos": ["dividida", "cheia", "canto"],
+  "escuro": false,
+  "pb": false,
+  "flash": false
+ }
+}

@@ -8,7 +8,7 @@ import cloud
 
 APP = os.path.dirname(os.path.abspath(__file__)); SKILL = os.path.dirname(APP); LIB = os.path.join(SKILL, "lib")
 sys.path.insert(0, LIB)
-import comum, chaves, custos, biblioteca, gemini, youtube, kanban, workspaces, leva
+import comum, chaves, custos, biblioteca, gemini, youtube, kanban, workspaces, leva, gerativa
 from estudio import zoom_auto      # a MESMA trilha de zoom do plano (não duplicar: o editor e o render têm que bater)
 PY = sys.executable; PORTA = int(os.environ.get("ESTUDIO_PORTA") or os.environ.get("PORTA", "4123"))
 HOST = os.environ.get("ESTUDIO_HOST", "127.0.0.1")
@@ -189,7 +189,7 @@ def info_projetos():
 
 def todos_custos():
     """Aba Custo: um bloco por projeto (vídeo) com os itens de custos.json e o total geral."""
-    out = []; tot = dict(claude=0.0, gemini=0.0, apify=0.0, total=0.0)
+    out = []; tot = dict(claude=0.0, gemini=0.0, apify=0.0, grok=0.0, total=0.0)
     for p in info_projetos():
         pasta = os.path.join(comum.RAIZ, p["slug"]); C = custos.ler(pasta); r = custos.resumo(pasta)
         for k in tot: tot[k] += r[k]
@@ -207,6 +207,11 @@ def todos_custos():
         for k in ("claude", "gemini", "apify", "total"): tot[k] += r[k]
         out.append(dict(slug="__busca__", nome="Buscas de B-roll (levas)", chat=True, criado="", sigla="", versoes=[], resumo=r,
                         itens=sorted(itl, key=lambda i: i.get("quando", "")), notas=[], editando=any(x["estado"].get("rodando") for x in lv)))
+    for a in lista_animados():
+        pa = os.path.join(animados(), a["id"]); r = custos.resumo(pa)
+        for k in tot: tot[k] += r.get(k, 0.0)
+        out.append(dict(slug="__animado__" + a["id"], nome=f"Ad animado · {a['nome']}", chat=True, criado=a["criado"][:10], sigla="", versoes=[],
+                        resumo=r, itens=sorted(custos.ler(pa)["itens"], key=lambda i: i.get("quando", "")), notas=[], editando=a["rodando"]))
     its = custos_chats()
     if its:
         r = dict(claude=round(sum(i["usd"] for i in its), 4), gemini=0.0, apify=0.0); r["total"] = r["claude"]
@@ -351,7 +356,7 @@ def iniciar_auto(d):
     token = d.get("id", ""); nome = str(d.get("nome", "")).strip()
     if not re.fullmatch(r"[a-z0-9]{8,40}", token): raise ValueError("envio inválido")
     if not nome: raise ValueError("dê um nome ao projeto")
-    if not chaves.ler()["anthropic"]: raise ValueError("configure a chave da API do Claude primeiro (⚙)")
+    if not chaves.claude_ok(): raise ValueError("configure o Claude primeiro (⚙ › IA & modelos: chave da API ou a sua assinatura)")
     if auto_rodando(): raise ValueError(f"já tem uma edição automática rodando ({auto_rodando()}); espere ela terminar")
     if d.get("estilo") not in [e["id"] for e in estilos()]: raise ValueError("modelo de edição inválido")
     ent = os.path.join(entrada(), token); video = (glob.glob(os.path.join(ent, "video.*")) or [None])[0]
@@ -394,7 +399,7 @@ def retomar_auto(pasta):
     s = estado_auto(pasta)
     if s and s.get("rodando"): raise ValueError("já está rodando")
     if auto_rodando(): raise ValueError("já tem outra edição automática rodando")
-    if not chaves.ler()["anthropic"]: raise ValueError("configure a chave da API do Claude primeiro (⚙)")
+    if not chaves.claude_ok(): raise ValueError("configure o Claude primeiro (⚙ › IA & modelos: chave da API ou a sua assinatura)")
     lancar_auto(pasta)
 
 def pasta_auto(slug):
@@ -471,7 +476,7 @@ def lancar_chat(p):
 
 def enviar_chat(p, d):
     if not os.path.exists(VENV_PY): raise ValueError("falta instalar o SDK (.venv da skill)")
-    if not chaves.ler()["anthropic"]: raise ValueError("configure a chave da API do Claude no ⚙ da tela inicial")
+    if not chaves.claude_ok(): raise ValueError("configure a chave da API do Claude no ⚙ da tela inicial")
     texto = str(d.get("texto") or "").strip(); anexos = [a for a in d.get("anexos") or [] if isinstance(a, str) and permitido(a) and os.path.isfile(a)]
     if not texto and not anexos: raise ValueError("mensagem vazia")
     if not ler_meta(p).get("titulo"): grava_meta(p, titulo=(texto.splitlines() or [os.path.basename(anexos[0])])[0][:70])
@@ -577,11 +582,11 @@ def iniciar_leva(d):
     token = d.get("id", ""); expert, oferta = nome_pasta(d.get("expert")), nome_pasta(d.get("oferta"))
     if not re.fullmatch(r"[a-z0-9]{8,40}", token): raise ValueError("envio inválido")
     if not expert or not oferta: raise ValueError("escolha o expert e a oferta")
-    if not chaves.ler()["anthropic"]: raise ValueError("configure a chave da API do Claude primeiro (⚙)")
+    if not chaves.claude_ok(): raise ValueError("configure o Claude primeiro (⚙ › IA & modelos: chave da API ou a sua assinatura)")
     fontes = [f for f in (d.get("fontes") or ["tiktok"]) if f in ("tiktok", "youtube")]
     if not fontes: raise ValueError("escolha onde buscar: TikTok, YouTube ou os dois")
     if "tiktok" in fontes and not custos.token_apify(): raise ValueError("configure o token da Apify primeiro (⚙) ou busque só no YouTube")
-    if "youtube" in fontes and not gemini.chave(): raise ValueError("o YouTube usa o Gemini para escolher os trechos: configure a chave (⚙)")
+    if "youtube" in fontes and not (gemini.chave() or biblioteca.motor_estudo().startswith("claude")): raise ValueError("o YouTube usa a IA do estudo para escolher os trechos: configure a chave do Gemini ou escolha o Claude em ⚙ › Estudo de B-roll")
     if "youtube" in fontes and not youtube.disponivel(): raise ValueError("o YouTube precisa do yt-dlp e do ffmpeg instalados")
     ent = os.path.join(entrada(), token); ans = []
     for a in d.get("anuncios") or []:
@@ -606,8 +611,8 @@ def agendar_busca_youtube(d):
     leva.laco_agendadas(), rodando numa thread do servidor desde o início do processo."""
     expert, oferta = nome_pasta(d.get("expert")), nome_pasta(d.get("oferta"))
     if not expert or not oferta: raise ValueError("escolha o expert e a oferta")
-    if not chaves.ler()["anthropic"]: raise ValueError("configure a chave da API do Claude primeiro (⚙)")
-    if not gemini.chave(): raise ValueError("o YouTube usa o Gemini para escolher os trechos: configure a chave (⚙)")
+    if not chaves.claude_ok(): raise ValueError("configure o Claude primeiro (⚙ › IA & modelos: chave da API ou a sua assinatura)")
+    if not (gemini.chave() or biblioteca.motor_estudo().startswith("claude")): raise ValueError("o YouTube usa a IA do estudo para escolher os trechos: configure a chave do Gemini ou escolha o Claude em ⚙ › Estudo de B-roll")
     if not youtube.disponivel(): raise ValueError("o YouTube precisa do yt-dlp e do ffmpeg instalados")
     try: agendado_em = float(d.get("agendado_em"))
     except (TypeError, ValueError): raise ValueError("escolha quando a busca deve começar")
@@ -1140,6 +1145,240 @@ def lancar_leva(dl):
     subprocess.Popen([VENV_PY, os.path.join(LIB, "leva.py"), dl], stdout=open(os.path.join(dl, "saida.log"), "a"), stderr=subprocess.STDOUT,
                      start_new_session=True, env=env, cwd=dl)
 
+
+# ---------------------------------------------------------------- Ad Animado (lib/animado.py, app/animado.html)
+EXT_IMG_REF = (".jpg", ".jpeg", ".png", ".webp")
+EXT_AUDIO = (".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac") + EXT_VIDEO
+
+def animados(): return os.path.join(comum.RAIZ, ".animados")
+
+def pasta_animado(slug):
+    if not isinstance(slug, str) or not slug or slug.startswith(".") or any(c in slug for c in ("/", "\\", "\x00")): raise ValueError("projeto inválido")
+    p = os.path.realpath(os.path.join(animados(), slug))
+    if not dentro(p, animados()) or not os.path.exists(os.path.join(p, "pedido.json")): raise ValueError("projeto inválido")
+    return p
+
+def _json_ou(arq, padrao):
+    try: return json.load(open(arq))
+    except (OSError, ValueError): return padrao
+
+def estado_animado_bruto(p):
+    st = _json_ou(os.path.join(p, "estado.json"), dict(rodando=False, status="novo", etapas=[], log=[]))
+    if st.get("rodando") and not vivo(st.get("pid")):
+        st.update(rodando=False, status="erro", mensagem=st.get("mensagem") or "o processo parou no meio (dá para retomar)")
+    return st
+
+def lista_animados():
+    out = []
+    for e in glob.glob(os.path.join(animados(), "*", "pedido.json")):
+        p = os.path.dirname(e); ped = _json_ou(e, {}); st = estado_animado_bruto(p); B = _json_ou(os.path.join(p, "storyboard.json"), {})
+        capa = next((os.path.join(p, b["img"]) for b in B.get("beats", []) if b.get("img")), None)
+        out.append(dict(id=os.path.basename(p), nome=ped.get("nome"), modo=ped.get("modo"), criado=ped.get("criado", ""),
+                        beats=len(B.get("beats", [])), capa=capa, final=os.path.join(p, "final.mp4") if os.path.exists(os.path.join(p, "final.mp4")) else None,
+                        status=st.get("status"), rodando=bool(st.get("rodando")), mensagem=st.get("mensagem", ""), custo=custos.resumo(p)))
+    return sorted(out, key=lambda x: x["criado"], reverse=True)
+
+def estado_animado(slug):
+    p = pasta_animado(slug); ped = _json_ou(os.path.join(p, "pedido.json"), {}); st = estado_animado_bruto(p)
+    st["log"] = st.get("log", [])[-80:]
+    B = _json_ou(os.path.join(p, "storyboard.json"), dict(beats=[]))
+    ab = lambda r: os.path.join(p, r) if r else None
+    for b in B.get("beats", []):
+        b["img_abs"] = ab(b.get("img")); b["video_abs"] = ab(b.get("video")); b["frame_abs"] = ab(b.get("frame_inicial")); b["final_abs"] = ab(b.get("img_final")); b["historico_abs"] = [ab(h) for h in b.get("historico") or []]
+    refs = [dict(r, abs=ab(r["arquivo"])) for r in ped.get("refs", [])]
+    R = B.get("referencia")
+    if R:
+        for q in R.get("quadros", []): q["abs"] = ab(q["arquivo"])
+        for c in R.get("cenas", []): c["quadro_abs"] = ab(c.get("quadro"))
+    C = custos.ler(p)
+    return dict(id=slug, pasta=p, pedido=dict(ped, refs=refs, audio_abs=ab(ped.get("audio")), referencia_abs=ab(ped.get("referencia_video"))), estado=st, storyboard=B,
+                assinatura=(chaves.ler().get("gen_auth") or "assinatura") == "assinatura",
+                modelos_imagem=gerativa.MODELOS_IMAGEM, modelos_video=gerativa.MODELOS_VIDEO,
+                modelo_img=ped.get("modelo_img") or gerativa.padrao_img(), modelo_video=ped.get("modelo_video") or gerativa.padrao_video(),
+                final=ab("final.mp4") if os.path.exists(os.path.join(p, "final.mp4")) else None,
+                srt=ab("legendas_final.srt") if os.path.exists(os.path.join(p, "legendas_final.srt")) else ab("legendas.srt") if os.path.exists(os.path.join(p, "legendas.srt")) else None,
+                timeline=_json_ou(os.path.join(p, "timeline.json"), None),
+                custo=dict(custos.resumo(p), grok=round(sum(i["usd"] for i in C["itens"] if i["servico"] in ("grok", "kie")), 4)),
+                estimativa_video=round(gerativa.custo_estimado_video(sum(max(2, min(15, math.ceil((b.get("fim", 0) - b.get("ini", 0)) + 0.4))) for b in B.get("beats", []))), 2))
+
+def receber_animado(handler, token, tipo, n, nome):
+    if not re.fullmatch(r"[a-z0-9]{8,40}", token): raise ValueError("envio inválido")
+    ext = os.path.splitext(nome)[1].lower(); pasta = os.path.join(entrada(), token); os.makedirs(pasta, exist_ok=True)
+    if tipo == "ref":
+        if ext not in EXT_IMG_REF or not re.fullmatch(r"\d{1,2}", n or ""): raise ValueError("a referência precisa ser .jpg, .png ou .webp")
+        base = f"ref_{int(n):02d}"
+    elif tipo == "audio":
+        if ext not in EXT_AUDIO: raise ValueError("o áudio precisa ser .mp3, .wav, .m4a ou um vídeo (.mp4/.mov)")
+        base = "audio"
+    elif tipo == "srt":
+        if ext != ".srt": raise ValueError("o SRT precisa ser .srt")
+        base = "legendas"
+    elif tipo == "refvideo":
+        if ext not in EXT_VIDEO: raise ValueError("o vídeo de referência precisa ser .mp4, .mov ou .m4v")
+        base = "referencia"
+    else: raise ValueError("tipo inválido")
+    dest = os.path.join(pasta, base + ext); cloud.receive(handler, dest)
+    for velho in glob.glob(os.path.join(pasta, base + ".*")):
+        if velho != dest and not velho.endswith(".part"): os.remove(velho)
+    return dest
+
+def lancar_animado(p, acao, nums=None):
+    st = estado_animado_bruto(p)
+    if st.get("rodando"): raise ValueError("este ad animado já está rodando")
+    cmd = [VENV_PY, os.environ.get("ESTUDIO_ANIMADO") or os.path.join(LIB, "animado.py"), p, acao] + ([",".join(str(int(x)) for x in nums)] if nums else [])
+    env = env_workspace({k: v for k, v in os.environ.items() if not k.startswith(("CLAUDE", "ANTHROPIC"))})
+    pr = subprocess.Popen(cmd, stdout=open(os.path.join(p, "saida.log"), "a"), stderr=subprocess.STDOUT, start_new_session=True, env=env, cwd=p)
+    for _ in range(50):
+        s = estado_animado_bruto(p)
+        if s.get("pid") == pr.pid and s.get("rodando"): break
+        time.sleep(0.1)
+    return pr.pid
+
+def exigir_chaves_animado(ped=None):
+    c = chaves.ler(); ped = ped or {}
+    if ped.get("custo", "livre") == "livre" and not chaves.claude_ok(): raise ValueError("configure o Claude primeiro (⚙ › IA & modelos: chave da API ou a sua assinatura)")
+    usa = {ped.get("modelo_img") or gerativa.padrao_img(), ped.get("modelo_video") or gerativa.padrao_video()}
+    if any(m.startswith("kie:") for m in usa) and not gerativa.chave_kie():
+        raise ValueError("não achei a chave da KIE: cole em ⚙ Configurações › Integrações")
+    if "grok" not in usa: return
+    if (c.get("gen_auth") or "assinatura") == "api":
+        if not c.get("xai"): raise ValueError("configure a chave da API da xAI em ⚙ Configurações › Integrações (ou troque para a assinatura do Grok)")
+    elif not os.path.exists(chaves.assinatura_grok()):
+        raise ValueError("não achei o login do Grok neste Mac: abra o Terminal, rode `grok` e entre com a sua conta (ou use uma chave de API em ⚙)")
+
+def ritmo_valido(r):
+    """Segundos por clipe {min, max} escolhidos na tela (ex.: 2 a 3 s num ad dinâmico)."""
+    try: mn, mx = float((r or {}).get("min", 2)), float((r or {}).get("max", 3))
+    except (TypeError, ValueError, AttributeError): raise ValueError("ritmo inválido")
+    if not (0.6 <= mn <= 12 and mn < mx <= 15): raise ValueError("o ritmo precisa ter mínimo entre 0,6 e 12 s e máximo maior que o mínimo (até 15 s)")
+    return dict(min=round(mn, 2), max=round(mx, 2))
+
+def criar_animado(d):
+    token = d.get("id", ""); nome = str(d.get("nome", "")).strip()
+    if not re.fullmatch(r"[a-z0-9]{8,40}", token): raise ValueError("envio inválido")
+    if not nome: raise ValueError("dê um nome ao ad")
+    ritmo = ritmo_valido(d.get("ritmo"))
+    custo = d.get("custo") if d.get("custo") in ("zero", "gemini", "livre") else "zero"
+    m_img = d.get("modelo_img") if gerativa.valido(d.get("modelo_img"), "img") else gerativa.padrao_img()
+    m_vid = d.get("modelo_video") if gerativa.valido(d.get("modelo_video"), "video") else gerativa.padrao_video()
+    exigir_chaves_animado(dict(modelo_img=m_img, modelo_video=m_vid, custo=custo))
+    modo = "nativo" if d.get("modo") == "nativo" else "vo"
+    ent = os.path.join(entrada(), token)
+    refs_env = sorted(glob.glob(os.path.join(ent, "ref_*")))
+    if not refs_env: raise ValueError("envie pelo menos uma imagem de referência (o recomendado são duas ou mais)")
+    audio = (glob.glob(os.path.join(ent, "audio.*")) or [None])[0]; srt = (glob.glob(os.path.join(ent, "legendas.srt")) or [None])[0]
+    refvideo = (glob.glob(os.path.join(ent, "referencia.*")) or [None])[0]
+    ref_nivel = str(d.get("ref_nivel") or "auto")
+    if ref_nivel not in ("auto", "1", "2", "3", "4", "5"): raise ValueError("nível de referência inválido")
+    roteiro = str(d.get("roteiro") or "").strip()
+    if modo == "vo" and not audio: raise ValueError("envie o áudio da locução (ou o vídeo com o áudio)")
+    if modo == "nativo" and not gerativa.tem_audio_nativo(m_vid):
+        raise ValueError(f"{gerativa.nome_modelo(m_vid)} não gera áudio; na fala nativa escolha um modelo de vídeo com áudio (Grok, Kling 2.6, Seedance ou Veo)")
+    if modo == "nativo" and not (srt or roteiro or audio): raise ValueError("para fala nativa, mande o roteiro, um SRT ou um áudio de referência")
+    p = os.path.join(animados(), slug_nome(nome))
+    if os.path.exists(p): raise ValueError(f"já existe um ad animado chamado '{nome}'")
+    os.makedirs(os.path.join(p, "refs")); os.makedirs(os.path.join(p, "fonte"))
+    info = {int(r.get("n", 0)): r for r in d.get("refs") or []}; refs = []
+    for arq in refs_env:
+        k = int(re.search(r"ref_(\d+)", arq).group(1)); dest = os.path.join("refs", os.path.basename(arq)); shutil.move(arq, os.path.join(p, dest))
+        r = info.get(k, {}); tipo = r.get("tipo") if r.get("tipo") in ("personagem", "produto", "estilo") else "personagem"
+        refs.append(dict(arquivo=dest, tipo=tipo, nota=str(r.get("nota") or "").strip()[:200]))
+    ped = dict(nome=nome, modo=modo, refs=refs, audio=None, srt=None, roteiro=roteiro[:20000], estilo=str(d.get("estilo") or "").strip()[:2000],
+               ritmo=ritmo, modelo_img=m_img, modelo_video=m_vid, referencia_video=None, ref_nivel=ref_nivel, custo=custo, montagem="continuo" if d.get("montagem") == "continuo" else "cortes", criado=time.strftime("%Y-%m-%d %H:%M:%S"))
+    if audio: ped["audio"] = os.path.join("fonte", "audio" + os.path.splitext(audio)[1].lower()); shutil.move(audio, os.path.join(p, ped["audio"]))
+    if srt: ped["srt"] = os.path.join("fonte", "legendas.srt"); shutil.move(srt, os.path.join(p, ped["srt"]))
+    if refvideo:
+        os.makedirs(os.path.join(p, "referencia"), exist_ok=True)
+        ped["referencia_video"] = os.path.join("referencia", "video" + os.path.splitext(refvideo)[1].lower()); shutil.move(refvideo, os.path.join(p, ped["referencia_video"]))
+    shutil.rmtree(ent, ignore_errors=True)
+    json.dump(ped, open(os.path.join(p, "pedido.json"), "w"), ensure_ascii=False, indent=1)
+    lancar_animado(p, "imagens"); return os.path.basename(p)
+
+def acao_animado(slug, d):
+    p = pasta_animado(slug); acao = d.get("acao"); st = estado_animado_bruto(p)
+    if acao == "cancelar":
+        if not st.get("rodando"): raise ValueError("não tem nada rodando")
+        try: matar_processo(int(st["pid"]))
+        except (ProcessLookupError, PermissionError, KeyError, ValueError): pass
+        return dict(ok=True)
+    if st.get("rodando"): raise ValueError("espere a etapa atual terminar (ou cancele)")
+    arq_b = os.path.join(p, "storyboard.json"); B = _json_ou(arq_b, dict(beats=[])); por_n = {b["n"]: b for b in B.get("beats", [])}
+    def grava():
+        tmp = arq_b + ".tmp"; json.dump(B, open(tmp, "w"), ensure_ascii=False, indent=1); os.replace(tmp, arq_b)
+    nums = sorted({int(n) for n in d.get("nums") or [] if int(n) in por_n})
+    prompts = {int(k): str(v).strip() for k, v in (d.get("prompts") or {}).items() if str(v).strip() and int(k) in por_n}
+    if acao == "apagar":
+        shutil.rmtree(p); return dict(ok=True)
+    if acao == "retomar":
+        fase = "videos" if B.get("aprovado") else "imagens"
+        exigir_chaves_animado(_json_ou(os.path.join(p, "pedido.json"), {})); lancar_animado(p, fase); return dict(ok=True)
+    finais = {int(k): str(v).strip() for k, v in (d.get("finais") or {}).items() if int(k) in por_n and por_n[int(k)].get("quadro_final")}
+    if acao == "editar":
+        for n, t in prompts.items(): por_n[n]["prompt"] = t; por_n[n]["prompt_editado"] = True
+        for n, t in finais.items():
+            if t: por_n[n]["quadro_final"] = t; por_n[n]["final_editado"] = True
+        grava(); return dict(ok=True)
+    if acao == "refazer":
+        for n, t in finais.items():                        # quadros finais (ad contínuo) a refazer
+            por_n[n]["img_final_estado"] = "refazer"
+            if t: por_n[n]["quadro_final"] = t; por_n[n]["final_editado"] = True
+        if not nums and not finais: nums = [b["n"] for b in B["beats"] if b.get("img_estado") in ("refazer", "erro")]
+        tem_finais = finais or any(b.get("quadro_final") and b.get("img_final_estado") in ("refazer", "erro") for b in B["beats"])
+        if not nums and not tem_finais: raise ValueError("nenhuma imagem marcada para refazer")
+        for n in nums:
+            por_n[n]["img_estado"] = "refazer"
+            if n in prompts: por_n[n]["prompt"] = prompts[n]; por_n[n]["prompt_editado"] = True
+        B["aprovado"] = False; grava(); exigir_chaves_animado(_json_ou(os.path.join(p, "pedido.json"), {})); lancar_animado(p, "refazer", nums or None); return dict(ok=True)
+    if acao == "validar":
+        exigir_chaves_animado(_json_ou(os.path.join(p, "pedido.json"), {})); lancar_animado(p, "validar"); return dict(ok=True)
+    if acao == "aprovar":
+        ped_ = _json_ou(os.path.join(p, "pedido.json"), {})
+        faltam = [b["n"] for b in (B.get("beats", [])[:1] if ped_.get("montagem") == "continuo" else B.get("beats", [])) if not b.get("img")] + \
+                 [b["n"] for b in B.get("beats", []) if b.get("quadro_final") and not b.get("img_final")]
+        if not B.get("beats") or faltam: raise ValueError(f"ainda faltam imagens: {faltam}")
+        B["aprovado"] = True; grava(); exigir_chaves_animado(_json_ou(os.path.join(p, "pedido.json"), {})); lancar_animado(p, "videos"); return dict(ok=True)
+    if acao == "refazer_video":
+        if not B.get("aprovado"): raise ValueError("aprove as imagens primeiro")
+        if not nums: raise ValueError("escolha quais vídeos refazer")
+        if _json_ou(os.path.join(p, "pedido.json"), {}).get("montagem") == "continuo":   # os seguintes nascem deste
+            nums = [b["n"] for b in B["beats"] if b["n"] >= min(nums)]
+        for n in nums:
+            if n in prompts: por_n[n]["anim"] = prompts[n]
+            por_n[n]["video_estado"] = "pendente"
+        grava(); exigir_chaves_animado(_json_ou(os.path.join(p, "pedido.json"), {})); lancar_animado(p, "refazer_video", nums); return dict(ok=True)
+    if acao == "montar":
+        lancar_animado(p, "montar"); return dict(ok=True)
+    if acao == "custo":
+        if d.get("custo") not in ("zero", "gemini", "livre"): raise ValueError("opção inválida")
+        ped_arq = os.path.join(p, "pedido.json"); ped = _json_ou(ped_arq, {}); ped["custo"] = d["custo"]
+        json.dump(ped, open(ped_arq, "w"), ensure_ascii=False, indent=1); return dict(ok=True)
+    if acao == "modelos":
+        ped_arq = os.path.join(p, "pedido.json"); ped = _json_ou(ped_arq, {})
+        if d.get("modelo_img"):
+            if not gerativa.valido(d["modelo_img"], "img"): raise ValueError("IA de imagem inválida")
+            ped["modelo_img"] = d["modelo_img"]
+        if d.get("modelo_video"):
+            if not gerativa.valido(d["modelo_video"], "video"): raise ValueError("IA de vídeo inválida")
+            if ped.get("modo") == "nativo" and not gerativa.tem_audio_nativo(d["modelo_video"]):
+                raise ValueError("esse modelo de vídeo não gera áudio; na fala nativa escolha um com áudio (Grok, Kling 2.6, Seedance ou Veo)")
+            ped["modelo_video"] = d["modelo_video"]
+        json.dump(ped, open(ped_arq, "w"), ensure_ascii=False, indent=1); return dict(ok=True)
+    if acao in ("ritmo", "nivel_ref"):
+        ped_arq = os.path.join(p, "pedido.json"); ped = _json_ou(ped_arq, {})
+        if acao == "ritmo": ped["ritmo"] = ritmo_valido(d.get("ritmo"))
+        else:
+            if str(d.get("ref_nivel")) not in ("auto", "1", "2", "3", "4", "5"): raise ValueError("nível inválido")
+            if not ped.get("referencia_video"): raise ValueError("este ad não tem vídeo de referência")
+            ped["ref_nivel"] = str(d["ref_nivel"])
+        json.dump(ped, open(ped_arq, "w"), ensure_ascii=False, indent=1)
+        for x in ("storyboard.json", "estado.json", "legendas.srt", "timeline.json", "final.mp4", "legendas_final.srt"):
+            try: os.remove(os.path.join(p, x))
+            except OSError: pass
+        exigir_chaves_animado(_json_ou(os.path.join(p, "pedido.json"), {})); lancar_animado(p, "imagens"); return dict(ok=True)
+    if acao == "voltar":
+        B["aprovado"] = False; grava(); return dict(ok=True)
+    raise ValueError("ação inválida")
+
 def estudo_arq(): return os.path.join(biblioteca.RAIZ, "estudo_progresso.json")
 
 def estado_estudo():
@@ -1156,7 +1395,7 @@ def estudar_biblioteca(nicho=None, expert=None, oferta=None, categoria=None, ref
         if not gemini.chave(): raise ValueError("configure a chave do Gemini primeiro (⚙) ou escolha o Claude para estudar")
         ok, motivo = gemini.funciona()
         if not ok: raise ValueError(motivo)
-    elif not chaves.ler()["anthropic"]: raise ValueError("configure a chave da API do Claude primeiro (⚙)")
+    elif not chaves.claude_ok(): raise ValueError("configure o Claude primeiro (⚙ › IA & modelos: chave da API ou a sua assinatura)")
     if not os.path.exists(VENV_PY): raise ValueError("falta instalar o SDK (.venv da skill)")
     if refazer: ids = [x["id"] for x in biblioteca.itens("descartado", nicho, None, expert, oferta, categoria)]
     else: ids = [x["id"] for x in biblioteca.itens("disponivel", nicho, None, expert, oferta, categoria) if not x.get("estudo")]
@@ -1281,6 +1520,7 @@ class H(BaseHTTPRequestHandler):
                 if m.group(1):
                     ini = int(m.group(1))
                     if m.group(2): fim = min(int(m.group(2)), tam - 1)
+                    elif tipo.startswith(("video/", "audio/")): fim = min(tam - 1, ini + (8 << 20) - 1)   # em pedaços de 8 MB: um vídeo parado não prende a conexão (o Chrome só abre 6 por site)
                 elif m.group(2): ini = max(0, tam - int(m.group(2)))
                 else: ini = tam
                 if ini >= tam or ini > fim:
@@ -1319,12 +1559,15 @@ class H(BaseHTTPRequestHandler):
             if u.path == "/editor": return self._arquivo(os.path.join(APP, "editor.html"), pagina=True)
             if u.path == "/cortes": return self._arquivo(os.path.join(APP, "cortes.html"), pagina=True)
             if u.path == "/chat": return self._arquivo(os.path.join(APP, "chat.html"), pagina=True)
+            if u.path == "/animado": return self._arquivo(os.path.join(APP, "animado.html"), pagina=True)
+            if u.path == "/api/animado/lista": return self._json(lista_animados())
+            if u.path == "/api/animado/estado": return self._json(estado_animado(q.get("id")))
             if u.path == "/api/auth/me": return self._json({k: self.user.get(k) for k in ("email", "name", "role")})
             if u.path == "/api/arquivos": return self._json(dict(arquivos=listar_arquivos()))
             if u.path.startswith("/fontes/"):
                 return self._arquivo(os.path.join(SKILL, "fontes", urllib.parse.unquote(u.path[len("/fontes/"):])))
             if u.path == "/api/chats":
-                return self._json(dict(chats=lista_chats(), chave=bool(chaves.ler()["anthropic"]), modelo=chaves.ler().get("modelo"), home=os.path.expanduser("~")))
+                return self._json(dict(chats=lista_chats(), chave=chaves.claude_ok(), modelo=chaves.ler().get("modelo"), home=os.path.expanduser("~")))
             if u.path == "/api/chat/eventos": return self._json(eventos_chat(pasta_chat(q.get("id")), int(q.get("pos") or 0)))
             if u.path == "/api/chat/mencoes": return self._json(mencoes())
             if u.path == "/api/ofertas": return self._json(biblioteca.arvore())
@@ -1414,6 +1657,8 @@ class H(BaseHTTPRequestHandler):
                 receber_arquivo(self, q.get("id", ""), q.get("tipo", ""), q.get("nome", "")); return self._json(dict(ok=True))
             if u.path == "/api/kanban/arquivo":
                 receber_anuncio(self, q.get("id", ""), q.get("n", ""), q.get("nome", "")); return self._json(dict(ok=True))
+            if u.path == "/api/animado/arquivo":
+                receber_animado(self, q.get("id", ""), q.get("tipo", ""), q.get("n", ""), q.get("nome", "")); return self._json(dict(ok=True))
             if u.path == "/api/busca/arquivo":
                 receber_anuncio(self, q.get("id", ""), q.get("n", ""), q.get("nome", "")); return self._json(dict(ok=True))
             if u.path == "/api/chat/arquivo":
@@ -1456,15 +1701,29 @@ class H(BaseHTTPRequestHandler):
                 if d.get("modelo") and d["modelo"] not in [m["id"] for m in chaves.MODELOS]: raise ValueError("modelo inválido")
                 if d.get("modelo_gemini") and d["modelo_gemini"] not in [m["id"] for m in gemini.MODELOS]: raise ValueError("modelo do Gemini inválido")
                 if d.get("modelo_estudo") and d["modelo_estudo"] not in [m["id"] for m in chaves.ESTUDO]: raise ValueError("quem estuda: opção inválida")
-                chaves.gravar(anthropic=d.get("anthropic") or None, gemini=d.get("gemini") or None, apify=d.get("apify") or None,
+                chaves.gravar(gemini_gratis=bool(d["gemini_gratis"]) if "gemini_gratis" in d else None,
+                              claude_auth=d.get("claude_auth") if d.get("claude_auth") in [x["id"] for x in chaves.AUTH_CLAUDE] else None,
+                              claude_token=d.get("claude_token") or None,
+                              anthropic=d.get("anthropic") or None, gemini=d.get("gemini") or None, apify=d.get("apify") or None,
                               openrouter=d.get("openrouter") or None, openai=d.get("openai") or None, heygen=d.get("heygen") or None,
+                              xai=d.get("xai") or None,
+                              gen_provedor=d.get("gen_provedor") if d.get("gen_provedor") in [g["id"] for g in chaves.GERATIVAS] else None,
+                              gen_resolucao=d.get("gen_resolucao") if d.get("gen_resolucao") in [r["id"] for r in chaves.RESOLUCOES] else None,
+                              gen_auth=d.get("gen_auth") if d.get("gen_auth") in [a["id"] for a in chaves.AUTH_GERATIVA] else None,
+                              kie=d.get("kie") or None,
+                              gen_img=d.get("gen_img") if gerativa.valido(d.get("gen_img"), "img") else None,
+                              gen_video=d.get("gen_video") if gerativa.valido(d.get("gen_video"), "video") else None,
+                              gen_modelo_img=d.get("gen_modelo_img") if d.get("gen_modelo_img") in [m["id"] for m in chaves.MODELOS_IMG] else None,
                               modelo=d.get("modelo") or None, modelo_gemini=d.get("modelo_gemini") or None, modelo_estudo=d.get("modelo_estudo") or None)
                 return self._json(chaves.publico())
             if u.path == "/api/config/testar":
                 qual = q.get("qual")
                 return self._json(testar_claude() if qual == "anthropic" else gemini.testar(qual) if qual in ("gemini", "openrouter")
-                                  else testar_openai() if qual == "openai" else testar_heygen() if qual == "heygen" else testar_apify())
+                                  else testar_openai() if qual == "openai" else testar_heygen() if qual == "heygen"
+                                  else gerativa.testar() if qual == "xai" else gerativa.testar_kie() if qual == "kie" else testar_apify())
             if u.path == "/api/novo/iniciar": return self._json(dict(ok=True, slug=iniciar_auto(json.loads(corpo))))
+            if u.path == "/api/animado/criar": return self._json(dict(ok=True, id=criar_animado(json.loads(corpo or b"{}"))))
+            if u.path == "/api/animado/acao": return self._json(acao_animado(q.get("id"), json.loads(corpo or b"{}")))
             if u.path == "/api/auto/cancelar": cancelar_auto(pasta_auto(q["p"])); return self._json(dict(ok=True))
             if u.path == "/api/auto/retomar":
                 retomar_auto(pasta_auto(q["p"])); return self._json(dict(ok=True))

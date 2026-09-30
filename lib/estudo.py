@@ -53,10 +53,40 @@ def estudar(arq, contexto="", cl=None, rotulo="estudo"):
     try:
         f, ts = folha(arq, os.path.join(tmp, "folha.jpg"), dur)
         conv = cl.conversa(INSTR, esforco="low")
+        # A ficha é grande demais para o modo estrito da API ("The compiled grammar is too large"): o formato vai no
+        # texto do pedido e a ficha é completada com os campos que faltarem.
         e = conv.pedir([ia.imagem(f), ia.texto(f"O clipe tem {dur:.1f} s. Quadros em: {', '.join(f'{t:.1f}' for t in ts)} s."
-                                              + (f"\nContexto da busca: {contexto}" if contexto else ""))], SCH, max_tokens=8000, rotulo=rotulo)
+                                              + (f"\nContexto da busca: {contexto}" if contexto else ""))], SCH, max_tokens=12000, rotulo=rotulo,
+                       formato=False)
+        e = completar(e, SCH)
     finally: shutil.rmtree(tmp, ignore_errors=True)
     return ficha.ajustar(e, dur)
+
+def completar(v, sch):
+    """Preenche o que a resposta deixou de fora com o valor neutro do tipo (lista vazia, 0, falso, texto vazio)."""
+    t = sch.get("type")
+    if t == "object":
+        v = v if isinstance(v, dict) else {}
+        for k, s in (sch.get("properties") or {}).items(): v[k] = completar(v.get(k), s)
+        return v
+    if t == "array": return [completar(x, sch.get("items") or {}) for x in v] if isinstance(v, list) else []
+    if v is not None:
+        if t in ("number", "integer") and not isinstance(v, (int, float)):
+            try: return float(v)
+            except (TypeError, ValueError): return 0
+        return v
+    return {"string": (sch.get("enum") or [""])[-1] if sch.get("enum") else "", "number": 0, "integer": 0, "boolean": False}.get(t)
+
+def olho_claude(partes, schema, rotulo, modelo, ao_cobrar=None, log=None):
+    """As escolhas pelo olho no YouTube (capas e folha de quadros) pelo Claude, no lugar do Gemini: são só imagens."""
+    import ia, base64
+    blocos = []
+    for p in partes:
+        if p.get("type") == "image":
+            blocos.append({"type": "image", "source": {"type": "base64", "media_type": p.get("mime_type") or "image/jpeg", "data": p["data"]}})
+        elif p.get("type") == "text": blocos.append({"type": "text", "text": p["text"]})
+    cl = ia.Claude(modelo=modelo, log=log or (lambda *_: None), ao_cobrar=ao_cobrar)
+    return cl.conversa("Você é o olho de um editor de vídeo escolhendo imagem de apoio (B-roll) para anúncios verticais.", esforco="low").pedir(blocos, schema, max_tokens=6000, rotulo=rotulo)
 
 if __name__ == "__main__":
     a = sys.argv[1:]

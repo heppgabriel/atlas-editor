@@ -113,6 +113,11 @@ def tt_uma(ctx, b):
     except Exception as ex: ctx.falha("TikTok", b, ex)
 
 
+def olho():
+    """Quem escolhe os vídeos e os trechos no YouTube: o mesmo motor do estudo (⚙) — Gemini, ou Claude pela folha de quadros."""
+    m = biblioteca.motor_estudo()
+    return m if m.startswith("claude") else None
+
 def yt_uma(ctx, b):
     """Capas -> o Gemini escolhe os vídeos -> folha de quadros -> o Gemini acha os trechos -> baixa só eles."""
     if ctx.youtube_bloqueado.is_set(): return
@@ -129,7 +134,7 @@ def yt_uma(ctx, b):
         ctx.est.log(f"YouTube · {b['nome']}: {len(cands)} vídeo(s) na lista; escolhendo pelas capas…")
         folha = youtube.folha_capas(cands, os.path.join(pasta, "capas.jpg"))
         lista = "\n".join(f"{c['n']} · {c['dur'] // 60}:{c['dur'] % 60:02d} · {c['views']} views · {c['canal']} · {c['titulo'][:100]}" for c in cands)
-        esc = gemini.escolher_videos(folha, lista, b["o_que"], YT_ABRIR, ao_cobrar=ctx.cobra_olho, log=ctx.est.log)
+        esc = gemini.escolher_videos(folha, lista, b["o_que"], YT_ABRIR, ao_cobrar=ctx.cobra_olho, log=ctx.est.log, motor=olho())
     except Exception as ex: ctx.falha("YouTube", b, ex); return
     por_n = {c["n"]: c for c in cands}; ids = []
     if not esc.get("escolhidos"): ctx.falha("YouTube", b, "nenhum vídeo adequado foi selecionado")
@@ -139,7 +144,7 @@ def yt_uma(ctx, b):
         if not c: continue
         try:
             fq, ts, dur_q = youtube.quadros(c["id"], pasta)
-            r = gemini.trechos_na_folha(fq, ts, dur_q, b["o_que"], YT_TRECHOS, ao_cobrar=ctx.cobra_olho, log=ctx.est.log)
+            r = gemini.trechos_na_folha(fq, ts, dur_q, b["o_que"], YT_TRECHOS, ao_cobrar=ctx.cobra_olho, log=ctx.est.log, motor=olho())
             for t in (r.get("trechos") or [])[:YT_TRECHOS]:
                 ini = max(0.0, float(t.get("ini") or 0)); dur = max(4.0, min(10.0, float(t.get("fim") or 0) - ini))
                 if ini + dur > dur_q + 1: continue
@@ -274,7 +279,7 @@ def main_youtube_agendada(d, ped):
     ate = float(ped["agendado_em"]) + float(ped.get("duracao_horas", 1)) * 3600
     def cobra_claude(info): custos.registrar(d, servico="claude", etapa="termos", fonte="tokens informados pela API × preço de tabela", **info)
     def cobra_olho(info):
-        custos.registrar(d, servico="gemini", etapa="busca", fonte="tokens informados pela API × preço de tabela (escolha dos vídeos e dos trechos no YouTube)", **info)
+        custos.registrar(d, servico="claude" if olho() else "gemini", etapa="busca", fonte="tokens informados pela API × preço de tabela (escolha dos vídeos e dos trechos no YouTube)", **info)
     def cobra_estudo(info):
         custos.registrar(d, servico="gemini" if biblioteca.motor_estudo() == "gemini" else "claude", etapa="estudo",
                          fonte="tokens informados pela API × preço de tabela (estudo do clipe)", **info)
@@ -398,7 +403,7 @@ def main():
     fontes = [f for f in (ped.get("fontes") or ["tiktok"]) if f in ("tiktok", "youtube")] or ["tiktok"]
     def cobra_claude(info): custos.registrar(d, servico="claude", etapa="termos", fonte="tokens informados pela API × preço de tabela", **info)
     def cobra_olho(info):
-        custos.registrar(d, servico="gemini", etapa="busca", fonte="tokens informados pela API × preço de tabela (escolha dos vídeos e dos trechos no YouTube)", **info)
+        custos.registrar(d, servico="claude" if olho() else "gemini", etapa="busca", fonte="tokens informados pela API × preço de tabela (escolha dos vídeos e dos trechos no YouTube)", **info)
     def cobra_estudo(info):
         custos.registrar(d, servico="gemini" if biblioteca.motor_estudo() == "gemini" else "claude", etapa="estudo",
                          fonte="tokens informados pela API × preço de tabela (estudo do clipe)", **info)

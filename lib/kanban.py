@@ -1,4 +1,4 @@
-"""Kanban do Estúdio: um quadro com os anúncios andando pelas fases, um trabalho pesado de cada vez.
+"""Kanban do Estúdio: um quadro com os anúncios andando pelas fases EM FILA — um anúncio por vez em cada fase.
 
 Colunas: broll → edicao (revisão sua) → render → pronto.
 Os vídeos do Kanban chegam já cortados; a limpeza automática está suspensa.
@@ -7,13 +7,14 @@ Uma demanda nova já entra direto em 'broll' (roda sozinha) e, quando a busca te
 'render' — e depois de pronto, arrastar para 'pronto'. Quando um card entra numa coluna que roda ele entra na
 FILA e roda sozinho; ao terminar fica ali marcado. O que roda em cada coluna:
 
-  broll    por LOTE: uma leva (lib/leva.py) com todos os anúncios daquele lote — transcreve todos juntos, o Claude
-           lê as falas e define as buscas, e os clipes entram na pasta da oferta com a etiqueta de cada anúncio.
+  broll    por card, UM de cada vez: uma leva (lib/leva.py) só com aquele anúncio — transcreve, o Claude lê a fala
+           e define as buscas, e os clipes entram na pasta da oferta com a etiqueta do anúncio.
   edicao   por card: preserva o vídeo enviado inteiro, prepara máscaras, B-roll e letreiros.
            Reaproveita a busca anterior e para para revisão no editor.
   render   por card: `auto.py --ate render`.
 
-Regras de desempenho (o editor tem que continuar liso): até LIMITE_CONCORRENCIA trabalhos pesados ao mesmo tempo
+Fila: no máximo UMA busca de B-roll, UMA edição e UM render ao mesmo tempo (ver proximo()); além disso, até
+LIMITE_CONCORRENCIA trabalhos pesados ao mesmo tempo
 por workspace (padrão 2; ESTUDIO_KANBAN_CONCORRENCIA muda isso), cada um em prioridade baixa (`nice`), e a fila
 pode ser pausada. Render nunca roda mais de um por vez — sozinho já satura a máquina, rodar dois ao mesmo tempo só
 deixaria os dois mais lentos. O estado mora em ~/Edições/.kanban/quadro.json.
@@ -182,34 +183,33 @@ def pausar(v):
     with mexer() as Q: Q["pausada"] = bool(v)
 
 # ---------------------------------------------------------------- o que rodar agora
+def _num(c): return int(re.sub(r"\D", "", c["id"]) or 0)
+
 def proximo(Q, vagas=1):
-    """Até `vagas` próximos trabalhos prontos para rodar agora: (tipo, chave) cada um. Lote de broll na frente,
-    depois cards de edição, depois render — mas render nunca ganha mais de UM ao mesmo tempo (sozinho já satura
-    a máquina; rodar dois só deixaria os dois mais lentos, sem ganhar nada)."""
+    """Até `vagas` próximos trabalhos prontos para rodar agora: ("card", id) cada um.
+
+    FILA POR FASE: cada anúncio passa pelas fases sozinho, um de cada vez em cada coluna — no máximo UMA busca
+    de B-roll, UMA edição e UM render rodando ao mesmo tempo. Uma demanda com vários anúncios continua subindo
+    todos de uma vez, mas eles andam em fila: o 1º faz a busca; quando termina, vai para a edição e o 2º começa
+    a busca, e assim por diante. Trabalhar um por vez dá resultados bem melhores do que buscar/editar tudo junto.
+    Ordem: B-roll na ordem em que os anúncios foram criados; edição e render, quem chegou primeiro."""
     if Q.get("pausada") or vagas <= 0: return []
-    render_ocupado = any(c["estado"] == "rodando" and c["coluna"] == "render" for c in Q["cards"].values())
+    rodando = [c for c in Q["cards"].values() if c["estado"] == "rodando"]
+    ocupadas = {c["coluna"] for c in rodando}
+    # dois cards com o mesmo nome (ainda sem projeto atribuído) usam a MESMA pasta — nunca rodam juntos
+    pastas = {c.get("projeto") or pasta_projeto(c["nome"]) for c in rodando if c["coluna"] in ("edicao", "render")}
     escolhidos = []
-    pastas_escolhidas = set()  # dois cards com o mesmo nome (ainda sem projeto atribuído) usam a MESMA pasta —
-                                # nunca escolher os dois juntos, senão rodam fase_projeto() um em cima do outro
     for col in ("broll", "edicao", "render"):
         if len(escolhidos) >= vagas: break
-        if col == "render" and render_ocupado: continue
+        if col in ocupadas: continue
         prontos = [c for c in Q["cards"].values() if c["coluna"] == col and c["estado"] == "espera"]
-        if not prontos: continue
         if col == "broll":
-            por_lote = {}
-            for c in prontos: por_lote.setdefault(c["lote"], []).append(c)
-            for lid in sorted(por_lote, key=lambda lid: min(cc["atualizado"] for cc in por_lote[lid])):
-                if len(escolhidos) >= vagas: break
-                escolhidos.append(("lote", lid))
-        else:
-            for c in sorted(prontos, key=lambda c: c["atualizado"]):
-                if len(escolhidos) >= vagas: break
-                pasta = c.get("projeto") or pasta_projeto(c["nome"])
-                if pasta in pastas_escolhidas: continue
-                pastas_escolhidas.add(pasta)
-                escolhidos.append(("card", c["id"]))
-                if col == "render": render_ocupado = True; break
+            if prontos: escolhidos.append(("card", min(prontos, key=_num)["id"]))
+            continue
+        for c in sorted(prontos, key=lambda c: (c["atualizado"], _num(c))):
+            pasta = c.get("projeto") or pasta_projeto(c["nome"])
+            if pasta in pastas: continue
+            pastas.add(pasta); escolhidos.append(("card", c["id"])); break
     return escolhidos
 
 def _reservar(vagas_max):
@@ -327,7 +327,7 @@ def fase_broll(lote, cards, log):
     # O id do lote entra no nome da pasta: só o timestamp (segundo a segundo) colidiria se dois lotes da mesma
     # oferta começarem no mesmo segundo — coisa que só pode acontecer agora que broll roda mais de um por vez.
     dl = biblioteca.pasta_oferta(lote["expert"], lote["oferta"], ".levas",
-                                  f"{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}-{lote['id']}")
+                                  f"{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}-{lote['id']}-{cards[0]['id']}")
     os.makedirs(os.path.join(dl, "anuncios"), exist_ok=True)
     anuncios = []
     for k, c in enumerate(cards, 1):

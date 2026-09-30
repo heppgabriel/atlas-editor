@@ -148,3 +148,58 @@ versoes/<V>/            jc.mov (jump cut 1440x2560), voz.wav, voz16k.wav, whispe
   `verificacao.md` depois do jump cut.
 - TikTok vem em HEVC: o editor usa os proxies H.264 do acervo; o render usa o original.
 - Hard link (`ln`) para pôr um vídeo de Downloads na pasta de renders sem ocupar espaço.
+
+## Ad Animado (`lib/animado.py`, `lib/gerativa.py`, `app/animado.html`)
+
+- Pasta `~/Edições/.animados/<nome>/`: `pedido.json` (modo `vo`|`nativo`, refs [{arquivo, tipo personagem|produto|estilo, nota}],
+  audio, srt, roteiro, estilo), `estado.json`, `storyboard.json` (locks, regra_de_ouro, pares_espelhados, motion_lock, aprovado,
+  beats [{n, ini, fim, texto, trilho, ideia, prompt, refs, img, img_estado gerada|ok|refazer|erro, validacao, historico, anim,
+  corte, render, video, video_estado}]), `legendas.srt`, `imagens/`, `videos/`, `montagem/`, `final.mp4`, `timeline.json`, `custos.json`.
+- Mesma lógica da skill ad-animado-grok: 1 bloco do SRT = 1 beat; trilhos AVATAR/BROLL/PRODUTO; LOCK por trilho acrescentado
+  pelo código ao prompt de imagem; conferência do Claude por imagem (lotes de 6) com prompt corrigido; MOTION LOCK; trava de
+  embalagem nos PRODUTO. SRT automático: whisper -> `srt_de_palavras` (frases de ~2,6 s, máx ~4,2 s, cola as < 0,9 s).
+- Ritmo (`pedido.ritmo` {min, max} s por clipe, escolhido na tela: 1–2, 2–3, 3–4, 4–6 ou personalizado): `srt_de_palavras`,
+  `dividir_longos` (SRT enviado) e `srt_de_roteiro` (fala nativa) quebram os beats nesse ritmo; ação "ritmo" refaz do zero.
+- Render por clipe: tamanho do corte + folga (`render_seg`), não 5/10 s fixos.
+- Grok pela assinatura (padrão, ⚙ gen_auth=assinatura): token OAuth de ~/.grok/auth.json (o mesmo das skills do terminal),
+  custo 0 (cota semanal); 401 -> roda `grok -p` uma vez para renovar e tenta de novo.
+- Montagem: VO = cada beat ocupa do início dele ao início do próximo (sem buraco), clipe cortado/congelado nesse tempo, voz por
+  baixo; fala nativa = cada clipe até o fim da própria fala (silencedetect), com o áudio dele. Beat sem vídeo entra com a imagem parada.
+- Grok (xAI): `/v1/images/edits` (até 5 refs, data URI), `/v1/images/generations`, `/v1/videos/generations` + `GET /v1/videos/{id}`.
+  Teste sem gastar: `ESTUDIO_XAI_API` num servidor falso; `tests/test_animado.py` troca Claude e provedor por falsos.
+- IA por projeto (`pedido.modelo_img` / `pedido.modelo_video`, padrão em ⚙ gen_img/gen_video): `grok` ou `kie:<modelo>`
+  (catálogo em `gerativa.KIE_IMG` / `KIE_VID`: Nano Banana Pro/2, Seedream 4.5, GPT Image 2; Kling 3.0 Turbo/2.6, Seedance 2/1.5 Pro,
+  Hailuo 2.3 Pro, Wan 2.6, Grok Imagine, Veo 3.1). KIE = createTask + recordInfo; imagens sobem antes (file-base64-upload).
+  Chave da KIE: ⚙ ou achada no computador (KIE_API_KEY no ~/.zshrc, ~/.claude.json, config do Claude desktop).
+  Duração pedida = a menor que o modelo aceita cobrindo o corte (`ajustar_duracao`); a montagem corta no tempo do SRT.
+- Inteligência dos prompts: `lib/animado_regras.py` (REGRAS_AD: hook com dor visual/metáfora e curiosidade, corpo com gancho a
+  cada ~5 s, produto físico/digital hiperespecífico, CTA físico; GUIA_IMAGEM; GUIAS_VIDEO por família grok/kling/seedance/veo/
+  hailuo/wan; MOVIMENTO_POR_PAPEL). Storyboard traz `papel` HOOK/CORPO/PRODUTO/CTA, `porque`, `hook`, `produto_detalhe`, e passa
+  por uma revisão do "diretor de criação" (notas 0–10; reescreve hook/produto abaixo de 9) antes de gerar. `prompt_video`
+  monta o prompt final no formato de cada modelo (Veo: fala/Ambient; Seedance: preserve/avoid jitter; Grok: No music).
+- Claude pela assinatura (⚙ `claude_auth=assinatura`): `ia.Claude.conversa` devolve `ConversaAssinatura`, que chama o Claude Code
+  headless pelo `claude_agent_sdk.query` (sem ferramentas, `--json-schema` + schema repetido no pedido, `resume` da sessão para a
+  conversa continuar). Tira ANTHROPIC_API_KEY do ambiente; usa o login do `claude` ou `claude_token` (CLAUDE_CODE_OAUTH_TOKEN do
+  `claude setup-token`). Custo registrado como US$ 0 ("assinatura (limite do plano)"). O chat também respeita esse modo.
+- Estudo pelo Claude (⚙ Estudo de B-roll = Claude): a ficha é grande demais para o modo estrito ("The compiled grammar is too
+  large"), então `estudo.estudar` pede com `formato=False` (schema no texto, JSON lido da resposta) e `estudo.completar` preenche
+  o que faltar. `ia.Conversa`/`ConversaAssinatura` trocam para esse modo sozinhas quando a API recusa a gramática. A escolha dos
+  vídeos e dos trechos no YouTube (capas e folha de quadros) também vai para o Claude (`gemini.pedir(motor=…)` ->
+  `estudo.olho_claude`), então a busca no YouTube funciona sem chave do Gemini.
+- Vídeo de referência no Ad Animado (`pedido.referencia_video`, `pedido.ref_nivel` auto|1–5): etapa "referencia" transcreve,
+  tira até 24 quadros (`referencia/quadros/`), estuda (Gemini assistindo se houver chave; senão Claude pelos quadros), e o Claude
+  compara com a copy (nota 1–5 + mapa beat -> cena). Nível = o escolhido ou a nota. O storyboard recebe a regra do nível
+  (`NIVEIS_REF`), o estudo e os quadros; nos níveis 4–5 o quadro da cena correspondente vai como referência de composição
+  para a IA de imagem; do nível 3 em diante a animação recebe a câmera da cena correspondente.
+- Gemini pela conta Google: chave do Google AI Studio (plano gratuito serve); ⚙ `gemini_gratis` baixa o estudo para 2 em paralelo.
+  O Gemini CLI (login da conta) não lê vídeo, por isso não há modo "assinatura" para o Gemini como há para o Claude.
+- Uso de API por ad (`pedido.custo`): `zero` = Claude forçado pela assinatura (`ia.Claude(assinatura=True)`) e Gemini só com chave
+  do Google marcada como plano gratuito (`animado.gemini_liberado`); `gemini` = Claude pela assinatura + Gemini pago liberado;
+  `livre` = como estiver em ⚙. Imagem/vídeo seguem a IA escolhida no ad.
+- Ad contínuo (`pedido.montagem = "continuo"`): só o beat 1 gera imagem (e passa pela conferência); os vídeos saem em sequência
+  e cada um começa no quadro em que o anterior é cortado na timeline (`quadro_de_corte` -> `imagens/continua-NN.jpg`, gravado em
+  `frame_inicial`). Storyboard e prompts de animação recebem a regra do plano-sequência. Refazer um vídeo refaz ele e os seguintes.
+- Quadros-chave do ad contínuo: o storyboard (SCHEMA_STORY_CONT) marca cada beat CONTINUA | ALVO | TRANSICAO, com `quadro_final`
+  (prompt) e `transicao`. ALVO/TRANSICAO geram `img_final` (conferida pelo Claude como "quadro final"; refazer próprio). Modelo com
+  quadro final (Seedance 2, Veo 3.1 — `gerativa.tem_quadro_final`): o clipe termina no quadro-chave. Sem ele: TRANSICAO começa no
+  quadro-chave e a montagem faz a transição (xfade 0,35 s: `tipo_transicao`), ALVO reancora o beat seguinte (dissolve).

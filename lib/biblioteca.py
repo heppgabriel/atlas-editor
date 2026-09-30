@@ -350,6 +350,8 @@ def estudar_pendentes(ids=None, contexto="", ao_cobrar=None, log=print, paralelo
             if progresso:
                 try: progresso(n[0], len(alvo))
                 except Exception: pass                   # o aviso de progresso nunca derruba o estudo
+    import chaves
+    if motor == "gemini" and chaves.ler().get("gemini_gratis"): paralelo = min(paralelo, 2)   # plano gratuito: ~10-15 pedidos/min
     with ThreadPoolExecutor(paralelo) as ex: feitos = [r for r in ex.map(um, alvo) if r]
     return feitos
 
