@@ -19,8 +19,8 @@ INSTR = ficha.instrucoes(video=False)
 
 def modelo_padrao():
     import chaves
-    m = chaves.ler().get("modelo_estudo") or "claude-opus-5"
-    return m if m.startswith("claude") else "claude-opus-5"
+    m = chaves.ler().get("modelo_estudo") or "claude-opus-5-5"
+    return m if m.startswith("claude") else "claude-opus-5-5"
 
 def duracao(arq):
     r = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", arq],

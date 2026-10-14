@@ -12,7 +12,7 @@ import os, re, sys, json, time, signal, threading, traceback, subprocess, unicod
 from concurrent.futures import ThreadPoolExecutor
 
 LIB = os.path.dirname(os.path.abspath(__file__)); SKILL = os.path.dirname(LIB); sys.path.insert(0, LIB)
-import biblioteca, custos, tiktok, youtube, gemini, ia, comum, regras
+import biblioteca, custos, tiktok, youtube, gemini, ia, comum, regras, get_brolls
 from ia import texto
 
 PY = sys.executable
@@ -25,6 +25,9 @@ ETAPAS_AGENDADA = [("busca", "Busca no YouTube (por rodadas, até a duração ag
 MAX_TOTAL = 18                                             # buscas por leva, no máximo
 MAX_TOTAL_AGENDADA = 8                                     # buscas por RODADA da busca agendada (ela repete rodadas)
 YT_CANDS, YT_ABRIR, YT_TRECHOS = 10, 3, 3                  # por busca: vídeos listados, vídeos abertos, trechos por vídeo
+GB_POR_BUSCA = 4                                           # Get B-rolls: vídeos baixados por busca (Pexels, Pixabay, Commons, NASA)
+RESERVA_MIN = 3                                            # busca com menos clipes que isso (Get B-rolls + YouTube) vai para a reserva (TikTok/Apify)
+FONTES_OK = ("getbrolls", "tiktok", "youtube")
 
 def S(): return {"type": "string"}
 def I(): return {"type": "integer"}
@@ -112,6 +115,35 @@ def tt_uma(ctx, b):
         ctx.guardar(b, res["ids"], res["novos"])
     except Exception as ex: ctx.falha("TikTok", b, ex)
 
+
+def gb_uma(ctx, b):
+    """Get B-rolls (Pexels, Pixabay, Wikimedia Commons, NASA): os melhores vídeos dos bancos para a busca, já cortados."""
+    ids = []
+    try:
+        cands, erros = get_brolls.buscar(b["termos"], GB_POR_BUSCA, log=ctx.est.log)
+        for e in erros: ctx.est.log(f"Get B-rolls · {b['nome']}: {e}")
+        if not cands:
+            ctx.est.log(f"Get B-rolls · {b['nome']}: nada nos bancos")
+            if erros: ctx.falha("Get B-rolls", b, erros[0])
+            return
+        for x in cands:
+            try:
+                arq = get_brolls.baixar(x, biblioteca.pasta("videos"))
+                i = biblioteca.adicionar(arquivo=arq, termo=", ".join(b["termos"][:2]), nicho=ctx.nicho, descricao=x["titulo"][:300],
+                                         expert=ctx.expert, oferta=ctx.oferta, categoria=b["categoria"], levas=[ctx.leva_id],
+                                         **get_brolls.campos_biblioteca(x))
+                ids.append(i); ctx.est.log(f"Get B-rolls · {b['nome']}: {i} ({get_brolls.NOMES.get(x['fonte'], x['fonte'])}, {x['licenca'] or 'licença a conferir'})")
+            except Exception as ex: ctx.falha("Get B-rolls", b, ex)
+    except Exception as ex: ctx.falha("Get B-rolls", b, ex)
+    finally: ctx.guardar(b, ids, ids)
+
+def youtube_pronto():
+    """O YouTube do Atlas precisa do yt-dlp/ffmpeg e da IA do estudo (quem escolhe os trechos)."""
+    return youtube.disponivel() and bool(gemini.chave() or biblioteca.motor_estudo().startswith("claude"))
+
+def faltando(ctx, buscas, minimo=RESERVA_MIN):
+    """As buscas que ficaram com menos de `minimo` clipes: são essas que a reserva (TikTok pela Apify) completa."""
+    return [b for b in buscas if len(ctx.achados.get(b["nome"], [])) < minimo]
 
 def olho():
     """Quem escolhe os vídeos e os trechos no YouTube: o mesmo motor do estudo (⚙) — Gemini, ou Claude pela folha de quadros."""
@@ -400,7 +432,7 @@ def main():
     signal.signal(signal.SIGTERM, parar)
     expert, oferta = ped["expert"], ped["oferta"]; nicho = biblioteca.nome_oferta(oferta); leva = os.path.basename(d)
     anuncios = ped["anuncios"]; nomes = [a["nome"] for a in anuncios]
-    fontes = [f for f in (ped.get("fontes") or ["tiktok"]) if f in ("tiktok", "youtube")] or ["tiktok"]
+    fontes = [f for f in (ped.get("fontes") or ["tiktok"]) if f in FONTES_OK] or ["tiktok"]
     def cobra_claude(info): custos.registrar(d, servico="claude", etapa="termos", fonte="tokens informados pela API × preço de tabela", **info)
     def cobra_olho(info):
         custos.registrar(d, servico="claude" if olho() else "gemini", etapa="busca", fonte="tokens informados pela API × preço de tabela (escolha dos vídeos e dos trechos no YouTube)", **info)
@@ -495,11 +527,28 @@ def main():
         roda(est, "termos", termos)
         T = json.load(open(os.path.join(d, "termos.json")))
 
-        # 3. busca (TikTok pela Apify e/ou YouTube pelo yt-dlp; tudo já entra na categoria e com a etiqueta dos anúncios)
+        # 3. busca (Get B-rolls + YouTube, com o TikTok pela Apify de reserva; ou só TikTok / só YouTube; tudo já entra na
+        # categoria e com a etiqueta dos anúncios)
         ctx = ContextoBusca(d, expert, oferta, nicho, leva, est, cobra_olho)
         def busca():
             est.s["falhas_busca"] = []; est.salvar()
             if not T["buscas"]: json.dump({}, open(os.path.join(d, "achados.json"), "w")); return "nada a buscar: a pasta já cobre as imagens"
+            if "getbrolls" in fontes:
+                usadas = ["Get B-rolls"]
+                est.log("Get B-rolls: buscando em " + ", ".join(get_brolls.NOMES[f] for f in get_brolls.fontes_ativas()))
+                with ThreadPoolExecutor(3) as ex: list(ex.map(lambda b: gb_uma(ctx, b), T["buscas"]))
+                if youtube_pronto():
+                    usadas.append("YouTube")
+                    with ThreadPoolExecutor(2) as ex: list(ex.map(lambda b: yt_uma(ctx, b), T["buscas"]))
+                else: est.log("YouTube pulado: falta o yt-dlp/ffmpeg ou a IA do estudo (⚙)")
+                falta = faltando(ctx, T["buscas"])
+                if falta and custos.token_apify():
+                    usadas.append("TikTok (reserva)")
+                    est.log(f"reserva: {len(falta)} busca(s) com menos de {RESERVA_MIN} clipes vão para o TikTok (Apify): " + ", ".join(b["nome"] for b in falta))
+                    with ThreadPoolExecutor(3) as ex: list(ex.map(lambda b: tt_uma(ctx, b), falta))
+                elif falta: est.log(f"{len(falta)} busca(s) com poucos clipes e sem o token da Apify para a reserva (⚙)")
+                json.dump(ctx.achados, open(os.path.join(d, "achados.json"), "w"), ensure_ascii=False, indent=1)
+                return f"{len({i for lista in ctx.achados.values() for i in lista})} clipe(s) salvo(s) em {len(T['buscas'])} busca(s) · " + " + ".join(usadas)
             if "tiktok" in fontes:
                 if not custos.token_apify(): raise RuntimeError("falta o token da Apify (⚙)")
                 with ThreadPoolExecutor(3) as ex: list(ex.map(lambda b: tt_uma(ctx, b), T["buscas"]))

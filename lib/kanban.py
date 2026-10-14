@@ -147,7 +147,7 @@ def criar_lote(nome, expert, oferta, estilo, anuncios, fontes=None):
     with mexer() as Q:
         lid = novo_id(Q, "L")
         Q["lotes"][lid] = dict(id=lid, nome=nome, expert=expert, oferta=oferta, estilo=estilo,
-                               fontes=fontes or ["tiktok", "youtube"], criado=agora())
+                               fontes=fontes or ["getbrolls"], criado=agora())
         for n, arq in anuncios:
             cid = novo_id(Q, "C")
             Q["cards"][cid] = dict(id=cid, lote=lid, nome=n, video=arq, projeto=None, coluna="broll", estado="espera",
@@ -336,7 +336,7 @@ def fase_broll(lote, cards, log):
     pedido_arq = os.path.join(dl, "pedido.json"); tmp = pedido_arq + ".tmp"
     with open(tmp, "w") as f:
         json.dump(dict(expert=lote["expert"], oferta=lote["oferta"], anuncios=anuncios, template=lote["estilo"],
-                       fontes=lote.get("fontes") or ["tiktok", "youtube"], criado=time.strftime("%Y-%m-%d %H:%M:%S"),
+                       fontes=lote.get("fontes") or ["getbrolls"], criado=time.strftime("%Y-%m-%d %H:%M:%S"),
                        kanban=lote["id"]), f, ensure_ascii=False, indent=1)
     os.replace(tmp, pedido_arq)
     log(f"kanban: leva de {len(cards)} anúncio(s) em {dl}")

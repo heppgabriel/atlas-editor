@@ -1,14 +1,16 @@
-"""Chaves de API do Estúdio (Claude, Gemini, Apify e a IA generativa do Ad Animado) e os modelos escolhidos para a edição automática.
+"""Chaves de API do Estúdio (Claude, Gemini, Apify, Pexels/Pixabay do Get B-rolls e a IA generativa do Ad Animado) e os modelos escolhidos para a edição automática.
 Ficam só neste Mac, em ~/.config/estudio-edicao/chaves.json (permissão 600), fora das pastas que o servidor
 serve. A página nunca recebe a chave inteira: só se está configurada e os 4 últimos caracteres."""
 import os, json
 
 ARQ = os.path.abspath(os.path.expanduser(os.environ.get("ESTUDIO_CHAVES") or "~/.config/estudio-edicao/chaves.json"))
 PASTA = os.path.dirname(ARQ)
-MODELOS = [dict(id="claude-opus-5", nome="Claude Opus 5 (recomendado)"),
-           dict(id="claude-sonnet-5", nome="Claude Sonnet 5 (mais barato)")]
-PADRAO = dict(anthropic="", gemini="", openrouter="", apify="", openai="", heygen="", xai="",
-              modelo="claude-opus-5", modelo_gemini="gemini-3.8-flash", modelo_estudo="gemini",
+MODELOS = [dict(id="claude-opus-5-5", nome="Claude Opus 5.5 (recomendado)"),
+           dict(id="claude-sonnet-5-5", nome="Claude Sonnet 5.5 (mais barato)"),
+           dict(id="claude-opus-5", nome="Claude Opus 5"),
+           dict(id="claude-sonnet-5", nome="Claude Sonnet 5")]
+PADRAO = dict(anthropic="", gemini="", openrouter="", apify="", openai="", heygen="", xai="", pexels="", pixabay="",
+              modelo="claude-opus-5-5", modelo_gemini="gemini-3.8-flash", modelo_estudo="gemini",
               gen_provedor="grok", gen_resolucao="720p", gen_auth="assinatura", gen_modelo_img="grok-imagine-image",
               kie="", gen_img="grok", gen_video="grok", claude_auth="api", claude_token="", gemini_gratis=False)
 AUTH_CLAUDE = [dict(id="api", nome="Chave da API da Anthropic (paga por uso)"),
@@ -30,6 +32,8 @@ def assinatura_grok(): return os.path.expanduser("~/.grok/auth.json")
 RESOLUCOES = [dict(id="480p", nome="480p (mais barato, para testar)"), dict(id="720p", nome="720p (recomendado)"),
               dict(id="1080p", nome="1080p (mais caro)")]
 ESTUDO = [dict(id="gemini", nome="Gemini (assiste o vídeo segundo a segundo; ~US$ 0,01 por clipe, uma vez)"),
+          dict(id="claude-opus-5-5", nome="Claude Opus 5.5 (pela folha de quadros · API ~US$ 0,04 por clipe, ou pela sua assinatura)"),
+          dict(id="claude-sonnet-5-5", nome="Claude Sonnet 5.5 (pela folha de quadros · API ~US$ 0,02 por clipe, ou pela sua assinatura)"),
           dict(id="claude-opus-5", nome="Claude Opus 5 (pela folha de quadros · API ~US$ 0,05 por clipe, ou pela sua assinatura)"),
           dict(id="claude-sonnet-5", nome="Claude Sonnet 5 (pela folha de quadros · API ~US$ 0,02 por clipe, ou pela sua assinatura)")]
 
@@ -62,6 +66,8 @@ def publico():
                 gemini=dict(ok=bool(d.get("gemini")), final=final(d.get("gemini", ""))),
                 openrouter=dict(ok=bool(d.get("openrouter")), final=final(d.get("openrouter", ""))),
                 apify=dict(ok=bool(d["apify"]), final=final(d["apify"])),
+                pexels=dict(ok=bool(d.get("pexels")), final=final(d.get("pexels", ""))),
+                pixabay=dict(ok=bool(d.get("pixabay")), final=final(d.get("pixabay", ""))),
                 openai=dict(ok=bool(d.get("openai")), final=final(d.get("openai", ""))),
                 heygen=dict(ok=bool(d.get("heygen")), final=final(d.get("heygen", ""))),
                 xai=dict(ok=bool(d.get("xai")), final=final(d.get("xai", ""))),

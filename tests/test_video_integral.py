@@ -127,7 +127,7 @@ class PipelineIntegralTests(unittest.TestCase):
             P=lambda: dict(nome="Parte 01"), est=SimpleNamespace(log=lambda _: None),
             aux=lambda nome, dados=None: state.__setitem__(nome, dados) if dados is not None else state[nome],
             pedir=lambda *a, **kw: dict(adicionar=[], buscas=[dict(nome="requested", termos=["foo"])], deixar=[]), grava_P=lambda _: None)
-        env = funcoes_auto({"buscas_permitidas", "et_revisao", "youtube_para_biblioteca"}, dict(
+        env = funcoes_auto({"buscas_permitidas", "pode_buscar", "et_revisao", "youtube_para_biblioteca"}, dict(
             custos=SimpleNamespace(token_apify=no_network), tiktok=SimpleNamespace(buscar=no_network),
             youtube=SimpleNamespace(buscar=no_network, baixar_para=no_network), conv_bp=lambda _: None,
             conferir_brolls=lambda *a: ([], [], [dict(texto="lacuna")]), tira_pre=lambda _: [], texto=lambda x:x,
@@ -164,7 +164,7 @@ class PipelineIntegralTests(unittest.TestCase):
             cl=SimpleNamespace(conversa=lambda *a,**k:None),
             pedir=lambda *a,**kw:dict(escolhas=[], buscas=[dict(nome="requested", termos=["foo"])], youtube=[dict(nome="requested")]),
             grava_P=lambda _:None)
-        env = funcoes_auto({"buscas_permitidas", "et_broll"}, dict(
+        env = funcoes_auto({"buscas_permitidas", "pode_buscar", "et_broll"}, dict(
             custos=SimpleNamespace(token_apify=no_network), tiktok=SimpleNamespace(buscar=no_network),
             youtube=SimpleNamespace(disponivel=no_network), biblioteca=SimpleNamespace(ler=lambda:dict(itens={})),
             youtube_para_biblioteca=no_network, duracoes_momentos=lambda *a:{}, disponiveis=lambda _:[],

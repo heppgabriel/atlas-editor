@@ -110,7 +110,7 @@ async def rodar(C):
         return PermissionResultDeny(message=r.get("motivo") or "O usuário negou esta ação.", interrupt=bool(r.get("parar")))
 
     modo = C.meta.get("modo") if C.meta.get("modo") in MODOS else "auto"
-    o = ClaudeAgentOptions(model=C.meta.get("modelo") or K.get("modelo") or "claude-opus-5", cwd=HOME,
+    o = ClaudeAgentOptions(model=C.meta.get("modelo") or K.get("modelo") or "claude-opus-5-5", cwd=HOME,
                            system_prompt={"type": "preset", "preset": "claude_code", "append": instrucoes(C.pasta)},
                            setting_sources=["user", "project", "local"], skills="all", include_partial_messages=True,
                            permission_mode=modo, can_use_tool=pode, resume=C.meta.get("session_id") or None, env=env,

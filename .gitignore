@@ -41,3 +41,6 @@ rollback/
 .agents/
 estilos/.trava
 .claude/settings.local.json
+
+# saídas do Claude (prints, testes)
+Claude outputs/

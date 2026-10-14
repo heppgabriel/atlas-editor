@@ -8,7 +8,7 @@ import cloud
 
 APP = os.path.dirname(os.path.abspath(__file__)); SKILL = os.path.dirname(APP); LIB = os.path.join(SKILL, "lib")
 sys.path.insert(0, LIB)
-import comum, chaves, custos, biblioteca, gemini, youtube, kanban, workspaces, leva, gerativa
+import comum, chaves, custos, biblioteca, gemini, youtube, kanban, workspaces, leva, gerativa, get_brolls
 from estudio import zoom_auto      # a MESMA trilha de zoom do plano (não duplicar: o editor e o render têm que bater)
 PY = sys.executable; PORTA = int(os.environ.get("ESTUDIO_PORTA") or os.environ.get("PORTA", "4123"))
 HOST = os.environ.get("ESTUDIO_HOST", "127.0.0.1")
@@ -583,8 +583,9 @@ def iniciar_leva(d):
     if not re.fullmatch(r"[a-z0-9]{8,40}", token): raise ValueError("envio inválido")
     if not expert or not oferta: raise ValueError("escolha o expert e a oferta")
     if not chaves.claude_ok(): raise ValueError("configure o Claude primeiro (⚙ › IA & modelos: chave da API ou a sua assinatura)")
-    fontes = [f for f in (d.get("fontes") or ["tiktok"]) if f in ("tiktok", "youtube")]
-    if not fontes: raise ValueError("escolha onde buscar: TikTok, YouTube ou os dois")
+    fontes = [f for f in (d.get("fontes") or ["getbrolls"]) if f in ("getbrolls", "tiktok", "youtube")]
+    if not fontes: raise ValueError("escolha onde buscar: Get B-rolls, TikTok, YouTube ou os dois")
+    if "getbrolls" in fontes and not get_brolls.instalado(): raise ValueError("o Get B-rolls não está instalado (vendor/get-brolls): rode o install.sh de novo")
     if "tiktok" in fontes and not custos.token_apify(): raise ValueError("configure o token da Apify primeiro (⚙) ou busque só no YouTube")
     if "youtube" in fontes and not (gemini.chave() or biblioteca.motor_estudo().startswith("claude")): raise ValueError("o YouTube usa a IA do estudo para escolher os trechos: configure a chave do Gemini ou escolha o Claude em ⚙ › Estudo de B-roll")
     if "youtube" in fontes and not youtube.disponivel(): raise ValueError("o YouTube precisa do yt-dlp e do ffmpeg instalados")
@@ -1112,7 +1113,7 @@ def criar_kanban(d):
     expert, oferta = nome_pasta(d.get("expert")), nome_pasta(d.get("oferta"))
     if not expert or not oferta: raise ValueError("escolha o expert e a oferta")
     estilo = d.get("estilo") if d.get("estilo") in [e["id"] for e in estilos()] else "ultradinamico-criativo"
-    fontes = [f for f in (d.get("fontes") or ["tiktok", "youtube"]) if f in ("tiktok", "youtube")] or ["youtube"]
+    fontes = [f for f in (d.get("fontes") or ["getbrolls"]) if f in ("getbrolls", "tiktok", "youtube")] or ["getbrolls"]
     ent = os.path.join(entrada(), token); ans = []
     for a in d.get("anuncios") or []:
         arq = (glob.glob(os.path.join(ent, f"anuncio_{int(a.get('n', 0)):02d}.*")) or [None])[0]
@@ -1459,6 +1460,10 @@ def novo_upload(proj, nome, handler):
     while os.path.exists(dest): dest = os.path.join(proj, "uploads", f"{base}-{k}{ext}"); k += 1
     if ext.lower() not in EXT_VIDEO + (".png", ".jpg", ".jpeg", ".webp"): raise ValueError("formato de mídia não aceito")
     cloud.receive(handler, dest)
+    if ext.lower() == ".webp":                      # o render só conhece jpg/png: a imagem webp vira png na chegada
+        png = os.path.splitext(dest)[0] + ".png"
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", dest, png])
+        if os.path.isfile(png) and os.path.getsize(png): os.remove(dest); dest = png
     return registrar_upload(proj, dest)
 
 def registrar_upload(proj, dest, categoria="Enviados do computador", descricao="enviado pelo editor"):
@@ -1706,7 +1711,7 @@ class H(BaseHTTPRequestHandler):
                               claude_token=d.get("claude_token") or None,
                               anthropic=d.get("anthropic") or None, gemini=d.get("gemini") or None, apify=d.get("apify") or None,
                               openrouter=d.get("openrouter") or None, openai=d.get("openai") or None, heygen=d.get("heygen") or None,
-                              xai=d.get("xai") or None,
+                              xai=d.get("xai") or None, pexels=d.get("pexels") or None, pixabay=d.get("pixabay") or None,
                               gen_provedor=d.get("gen_provedor") if d.get("gen_provedor") in [g["id"] for g in chaves.GERATIVAS] else None,
                               gen_resolucao=d.get("gen_resolucao") if d.get("gen_resolucao") in [r["id"] for r in chaves.RESOLUCOES] else None,
                               gen_auth=d.get("gen_auth") if d.get("gen_auth") in [a["id"] for a in chaves.AUTH_GERATIVA] else None,
@@ -1720,7 +1725,7 @@ class H(BaseHTTPRequestHandler):
                 qual = q.get("qual")
                 return self._json(testar_claude() if qual == "anthropic" else gemini.testar(qual) if qual in ("gemini", "openrouter")
                                   else testar_openai() if qual == "openai" else testar_heygen() if qual == "heygen"
-                                  else gerativa.testar() if qual == "xai" else gerativa.testar_kie() if qual == "kie" else testar_apify())
+                                  else gerativa.testar() if qual == "xai" else gerativa.testar_kie() if qual == "kie" else get_brolls.testar(qual) if qual in ("pexels", "pixabay") else testar_apify())
             if u.path == "/api/novo/iniciar": return self._json(dict(ok=True, slug=iniciar_auto(json.loads(corpo))))
             if u.path == "/api/animado/criar": return self._json(dict(ok=True, id=criar_animado(json.loads(corpo or b"{}"))))
             if u.path == "/api/animado/acao": return self._json(acao_animado(q.get("id"), json.loads(corpo or b"{}")))
@@ -1783,6 +1788,15 @@ class H(BaseHTTPRequestHandler):
             pasta = pasta_versao(q["p"], q["v"]); chave = (q["p"], q["v"])
             if u.path == "/api/sfx": return self._json(dict(sfx=eventos_sfx(json.loads(corpo))))
             if u.path == "/api/salvar": return self._json(dict(ok=True, plano=salvar(pasta, json.loads(corpo))))
+            if u.path == "/api/editor/chat":
+                d = json.loads(corpo or b"{}"); P = d.get("plano") or json.load(open(os.path.join(pasta, "plano.json")))
+                if not str(d.get("mensagem") or "").strip(): raise ValueError("escreva o que você quer mudar")
+                if not chaves.claude_ok(): raise ValueError("configure o Claude primeiro (⚙ › IA & modelos: chave da API ou a sua assinatura)")
+                import chat_editor
+                try:
+                    return self._json(dict(ok=True, **chat_editor.responder(pasta_proj(q["p"]), P, comum.estilo(P.get("estilo", "ultradinamico")),
+                                                                            d["mensagem"], d.get("historico") or [], d.get("agora"))))
+                except Exception as e: return self._json(dict(erro=f"o Claude não respondeu: {str(e)[:300]}"), 502)
             if u.path == "/api/renderizar":
                 if any(j.get("rodando") for j in JOBS.values()): return self._json(dict(erro="já existe um render rodando"), 409)
                 if corpo: salvar(pasta, json.loads(corpo))

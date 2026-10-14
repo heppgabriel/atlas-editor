@@ -467,7 +467,7 @@ header.topo{min-height:76px;gap:14px;flex-wrap:nowrap;padding:16px 28px;backgrou
     <label>Oferta<select id="kOferta" onchange="if(this.value=='__nova')novoNome(this,'Nome da oferta:')"></select></label>
     <label>Template de edição<select id="kTpl"></select></label>
     <label>Onde buscar o B-roll<select id="kFonte">
-      <option value="youtube">YouTube — grátis</option><option value="tiktok">TikTok — Apify</option><option value="ambos">Os dois</option></select></label>
+      <option value="getbrolls">Get B-rolls + YouTube — TikTok (Apify) só se faltar</option><option value="youtube">YouTube — grátis</option><option value="tiktok">TikTok — Apify</option><option value="ambos">YouTube e TikTok</option></select></label>
   </div>
   <div class="bts"><span class="st" id="kSt"></span><button onclick="fecharM('knova')">Cancelar</button>
     <button class="pri" id="kIr" onclick="kCriar()">Criar demanda</button></div>
@@ -489,9 +489,10 @@ header.topo{min-height:76px;gap:14px;flex-wrap:nowrap;padding:16px 28px;backgrou
       <label><span>Oferta (pasta onde os B-rolls vão ficar)</span><select id="sOferta" onchange="sInfo()"></select></label>
       <label><span>Template de edição (o ritmo que decide quantos B-rolls cada anúncio vai ter)</span><select id="sTpl" onchange="sInfo()"></select></label>
       <label><span>Onde buscar os clipes</span><select id="sFonte" onchange="sInfo()">
+        <option value="getbrolls">Get B-rolls (Pexels, Pixabay, Commons, NASA) + YouTube — o TikTok (Apify) só completa o que faltar</option>
         <option value="youtube">YouTube — busca grátis, a IA do estudo escolhe os trechos</option>
         <option value="tiktok">TikTok — Apify (busca e download pagos)</option>
-        <option value="ambos">Os dois</option></select></label></div>
+        <option value="ambos">YouTube e TikTok</option></select></label></div>
     <div class="cinza" id="sInfo"></div>
     <div class="bts"><span class="st" id="sSt"></span><button class="pri" id="sIr" onclick="sIniciar()">Transcrever e buscar B-rolls</button></div>
   </section>
@@ -648,8 +649,18 @@ header.topo{min-height:76px;gap:14px;flex-wrap:nowrap;padding:16px 28px;backgrou
       <select id="genR"></select>
     </div>
     <div class="cfgcard">
+      <h4>Bancos de vídeo (Get B-rolls)</h4>
+      <label>Pexels: chave grátis em pexels.com/api (opcional)</label>
+      <div class="lin"><input type="password" id="kPx" autocomplete="off" placeholder="chave da Pexels…"><button onclick="testar('pexels')">Testar</button></div>
+      <div class="st" id="stPx"></div>
+      <label>Pixabay: chave grátis em pixabay.com/api/docs (opcional)</label>
+      <div class="lin"><input type="password" id="kPb" autocomplete="off" placeholder="chave da Pixabay…"><button onclick="testar('pixabay')">Testar</button></div>
+      <div class="st" id="stPb"></div>
+      <div class="cinza">Sem chave, o Get B-rolls busca só no Wikimedia Commons e na NASA.</div>
+    </div>
+    <div class="cfgcard">
       <h4>Apify</h4>
-      <label>Token (busca de B-roll no TikTok)</label>
+      <label>Token (busca de B-roll no TikTok · reserva do Get B-rolls)</label>
       <div class="lin"><input type="password" id="kP" autocomplete="off" placeholder="apify_api_…"><button onclick="testar('apify')">Testar</button></div>
       <div class="st" id="stP"></div>
     </div>
@@ -894,7 +905,7 @@ function cfgAba(nome){
 }
 async function abrirCfg(){CFG=await (await fetch("/api/config")).json();mostraCfg();cfgAba("ia");$("#stA").textContent=$("#stP").textContent=$("#stG").textContent="";$("#cfg").classList.add("on");await wsCarregar();wsDesenhaAdmin()}
 function mostraCfg(){
-  $("#kA").value="";$("#kP").value="";$("#kG").value="";$("#kO").value="";$("#kAI").value="";$("#kHG").value="";$("#kX").value="";
+  $("#kA").value="";$("#kP").value="";$("#kPx").value="";$("#kPb").value="";$("#kG").value="";$("#kO").value="";$("#kAI").value="";$("#kHG").value="";$("#kX").value="";
   $("#kX").placeholder=CFG.xai&&CFG.xai.ok?`configurada (${CFG.xai.final}) · cole outra para trocar`:"xai-…";
   $("#genP").innerHTML=(CFG.gerativas||[]).map(g=>`<option value="${g.id}" ${g.id==CFG.gen_provedor?"selected":""}>${esc(g.nome)}</option>`).join("");
   $("#kK").value="";$("#kK").placeholder=CFG.kie&&CFG.kie.ok?(CFG.kie.detectada?`achei a sua chave neste computador (${CFG.kie.final}) · cole outra para trocar`:`configurada (${CFG.kie.final}) · cole outra para trocar`):"chave da KIE (kie.ai › API Key)…";
@@ -913,17 +924,18 @@ function mostraCfg(){
   $("#kT").value="";$("#kT").placeholder=CFG.claude_token&&CFG.claude_token.ok?`configurado (${CFG.claude_token.final}) · cole outro para trocar`:"sk-ant-oat…";
   $("#kA").placeholder=CFG.anthropic.ok?`configurada (${CFG.anthropic.final}) · cole outra para trocar`:"sk-ant-…";
   $("#kP").placeholder=CFG.apify.ok?`configurado (${CFG.apify.final}) · cole outro para trocar`:"apify_api_…";
+  for(const [k,id] of [["pexels","#kPx"],["pixabay","#kPb"]])if(CFG[k])$(id).placeholder=CFG[k].ok?`configurado (${CFG[k].final}) · cole outra para trocar`:`chave da ${k=="pexels"?"Pexels":"Pixabay"}…`;
   $("#kAI").placeholder=CFG.openai&&CFG.openai.ok?`configurada (${CFG.openai.final}) · cole outra para trocar`:"sk-…";
   $("#kHG").placeholder=CFG.heygen&&CFG.heygen.ok?`configurada (${CFG.heygen.final}) · cole outra para trocar`:"chave do HeyGen…";
   $("#mod").innerHTML=CFG.modelos.map(m=>`<option value="${m.id}" ${m.id==CFG.modelo?"selected":""}>${esc(m.nome)}</option>`).join("");
 }
 function mostraAuthClaude(){const a=$("#cAuth").value=="assinatura";$("#linA").hidden=a;$("#linT").hidden=!a}
 async function salvarCfg(fecha){
-  CFG=await post("/api/config",{claude_auth:$("#cAuth").value,claude_token:$("#kT").value.trim(),anthropic:$("#kA").value.trim(),gemini:$("#kG").value.trim(),openrouter:$("#kO").value.trim(),apify:$("#kP").value.trim(),openai:$("#kAI").value.trim(),heygen:$("#kHG").value.trim(),xai:$("#kX").value.trim(),gen_provedor:$("#genP").value,gen_resolucao:$("#genR").value,gen_auth:$("#genA").value,gen_modelo_img:$("#genM").value,kie:$("#kK").value.trim(),gen_img:$("#genI").value,gen_video:$("#genV").value,modelo:$("#mod").value,modelo_gemini:$("#modG").value,gemini_gratis:$("#gGratis").checked,modelo_estudo:$("#modE").value});mostraCfg();
+  CFG=await post("/api/config",{claude_auth:$("#cAuth").value,claude_token:$("#kT").value.trim(),anthropic:$("#kA").value.trim(),gemini:$("#kG").value.trim(),openrouter:$("#kO").value.trim(),apify:$("#kP").value.trim(),pexels:$("#kPx").value.trim(),pixabay:$("#kPb").value.trim(),openai:$("#kAI").value.trim(),heygen:$("#kHG").value.trim(),xai:$("#kX").value.trim(),gen_provedor:$("#genP").value,gen_resolucao:$("#genR").value,gen_auth:$("#genA").value,gen_modelo_img:$("#genM").value,kie:$("#kK").value.trim(),gen_img:$("#genI").value,gen_video:$("#genV").value,modelo:$("#mod").value,modelo_gemini:$("#modG").value,gemini_gratis:$("#gGratis").checked,modelo_estudo:$("#modE").value});mostraCfg();
   if(fecha)fecharM("cfg");
 }
 async function testar(qual){
-  const st=qual=="anthropic"?$("#stA"):qual=="gemini"?$("#stG"):qual=="openrouter"?$("#stO"):qual=="openai"?$("#stAI"):qual=="heygen"?$("#stHG"):qual=="xai"?$("#stX"):qual=="kie"?$("#stK"):$("#stP");st.className="st";st.textContent="testando…";
+  const st=qual=="anthropic"?$("#stA"):qual=="gemini"?$("#stG"):qual=="openrouter"?$("#stO"):qual=="openai"?$("#stAI"):qual=="heygen"?$("#stHG"):qual=="xai"?$("#stX"):qual=="kie"?$("#stK"):qual=="pexels"?$("#stPx"):qual=="pixabay"?$("#stPb"):$("#stP");st.className="st";st.textContent="testando…";
   try{await salvarCfg(false);const r=await post("/api/config/testar?qual="+qual);st.className="st "+(r.ok?"ok":"no");st.textContent=r.msg}
   catch(e){st.className="st no";st.textContent=e.message}
 }
@@ -1209,7 +1221,8 @@ function sInfo(){const so=$("#sOferta");if(so.value=="__nova")novoNome(so,"Nome 
   $("#sInfo").innerHTML=(o?`${o.categorias.length} categoria(s) nesta oferta: ${o.categorias.map(c=>esc(c.nome)+" ("+c.clipes+")").join(", ")||"nenhuma ainda"}.<br>`:"Oferta nova: as categorias serão criadas.<br>")
     +(n?`${n} anúncio(s). O Claude faz o plano de B-roll de cada um no template escolhido, confere o que a pasta já tem e só busca o que falta
       (o plano ~US$ 0,15; ${CUSTO_FONTE[$("#sFonte").value]}).`:"")}
-const CUSTO_FONTE={youtube:"cada busca ~US$ 0,15 no YouTube: nada pela busca, ~US$ 0,01 para o Gemini escolher os trechos e ~US$ 0,01 por clipe de ficha",
+const CUSTO_FONTE={getbrolls:"Pexels, Pixabay, Commons e NASA não cobram; o YouTube ~US$ 0,01 por busca para escolher os trechos; a Apify só cobra nas buscas que ficarem com menos de 3 clipes; o estudo de cada clipe é cobrado à parte",
+  youtube:"cada busca ~US$ 0,15 no YouTube: nada pela busca, ~US$ 0,01 para o Gemini escolher os trechos e ~US$ 0,01 por clipe de ficha",
   tiktok:"a Apify cobra pelos resultados e downloads; o estudo de cada clipe é cobrado separadamente",
   ambos:"soma as cobranças de busca/download do TikTok e de análise dos clipes das duas fontes"};
 function sAdd(fs){fs.filter(f=>/\.(mp4|mov|m4v|webm|mkv)$/i.test(f.name)).forEach(f=>sArq.push({f,nome:`Anúncio ${String(sArq.length+1).padStart(2,"0")}`,pct:0}));sDesenha();sInfo()}
@@ -1251,7 +1264,7 @@ async function sLevas(){clearTimeout(sTimer);const L=await (await fetch("/api/bu
     const ic=ICONE;
     const titulo=l.anuncios.length?l.anuncios.join(" · "):`Busca agendada no YouTube`;
     return `<div class="auto"><div class="topo"><b>${esc(titulo)}</b><span class="estado ${s.status}">${ROT_ESTADO_BUSCA[s.status]||s.status}</span>
-      <span class="sub">${esc(l.expert)} › ${esc(l.oferta)}${l.template?` · ${esc(l.template)}`:""} · ${(l.fontes||["tiktok"]).map(f=>f=="youtube"?"YouTube":"TikTok").join(" + ")} · ${esc((l.criado||"").slice(0,16))} · US$ ${num(l.custo.total)}</span><span class="esp"></span>
+      <span class="sub">${esc(l.expert)} › ${esc(l.oferta)}${l.template?` · ${esc(l.template)}`:""} · ${(l.fontes||["tiktok"]).map(f=>({youtube:"YouTube",getbrolls:"Get B-rolls + YouTube (TikTok de reserva)"}[f]||"TikTok")).join(" + ")} · ${esc((l.criado||"").slice(0,16))} · US$ ${num(l.custo.total)}</span><span class="esp"></span>
       ${s.status=="agendada"?`<button onclick="sCancelaAgendada('${jsesc(l.id)}')">Cancelar agendamento</button>`
         :s.rodando?`<button onclick="sCancela('${jsesc(l.id)}')">Cancelar</button>`:s.status!="pronto"?`<button onclick="sRetoma('${jsesc(l.id)}')">Retomar</button>`:""}</div>
       ${s.etapas&&s.etapas.length?`<ul class="etapas">${s.etapas.map(e=>`<li class="${e.estado}"><i>${ic[e.estado]||"○"}</i><span>${esc(e.nome)}</span><em>${esc(e.detalhe||"")}</em></li>`).join("")}</ul>`:""}
@@ -1351,8 +1364,8 @@ async function tplPublicar(id){
 
 // ---------------- aba B-rolls (biblioteca)
 let bT=null,bT2=null,bEst="disponivel",bNichos=false;
-const QUEM={"claude-opus-5":["o Claude Opus",0.05],"claude-sonnet-5":["o Claude Sonnet",0.02],gemini:["o Gemini",0.01]};
-async function bEstudar(n,motor,esc0){const [q,p]=QUEM[motor]||QUEM["claude-opus-5"];
+const QUEM={"claude-opus-5-5":["o Claude Opus 5.5",0.04],"claude-sonnet-5-5":["o Claude Sonnet 5.5",0.02],"claude-opus-5":["o Claude Opus",0.05],"claude-sonnet-5":["o Claude Sonnet",0.02],gemini:["o Gemini",0.01]};
+async function bEstudar(n,motor,esc0){const [q,p]=QUEM[motor]||QUEM["claude-opus-5-5"];
   if(!confirm(`${q[0].toUpperCase()+q.slice(1)} vai estudar ${n} clipe(s) ainda sem ficha (descrição, tags, trechos limpos, texto queimado). Uma vez só: ~US$ ${num(n*p)}. Começar?`))return;
   try{await post("/api/biblioteca/estudar?"+new URLSearchParams(esc0));bibl()}catch(e){alert(e.message)}}
 const PASTA_SVG=`<svg viewBox="0 0 24 20" width="22" height="18"><path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h5.2l2 2.2h9.8A1.5 1.5 0 0 1 22 5.7V16.5A1.5 1.5 0 0 1 20.5 18h-17A1.5 1.5 0 0 1 2 16.5z" fill="#8e8e93"/></svg>`;
@@ -1366,7 +1379,7 @@ function cartaoPasta(titulo,sub,capas,alvo){return `<div class="pasta" onclick='
 function cartaoClipe(x,comEstado,comCategoria,comSelecao){return `<div class="bi ${x.estado}">
   <div class="bcapa" onclick="assistir('${jsesc(x.arquivo)}','${jsesc(x.id+" · "+(x.descricao||""))}')">${x.capa?`<img src="${f(x.capa)}" loading="lazy">`:`<div class="sem">sem capa</div>`}
     <span class="dur">${(x.dur||0).toFixed(0)}s</span>${x.nota!=null?`<span class="nota-b">${x.nota}/10</span>`:""}${comEstado?`<span class="est-b ${x.estado}">${ROT_EST[x.estado]||x.estado}</span>`:""}</div>
-  <div class="binfo"><div style="display:flex;align-items:center;gap:6px">${comSelecao?`<label class="bchk" onclick="event.stopPropagation()"><input type="checkbox" ${bSel.has(x.id)?"checked":""} onchange="bSelecionaUm('${jsesc(x.id)}',this.checked)"></label>`:""}<b>${esc(x.id)}</b></div> <span class="cinza">${comCategoria?esc(x.categoria||"sem categoria"):""}${x.fonte=="youtube"?" · YouTube":""}</span>
+  <div class="binfo"><div style="display:flex;align-items:center;gap:6px">${comSelecao?`<label class="bchk" onclick="event.stopPropagation()"><input type="checkbox" ${bSel.has(x.id)?"checked":""} onchange="bSelecionaUm('${jsesc(x.id)}',this.checked)"></label>`:""}<b>${esc(x.id)}</b></div> <span class="cinza">${comCategoria?esc(x.categoria||"sem categoria"):""}${x.fonte=="youtube"?" · YouTube":{pexels:" · Pexels",pixabay:" · Pixabay",commons:" · Commons",nasa:" · NASA"}[x.fonte]||""}</span>
     <p>${esc(x.descricao||(x.estudado?"":"(ainda sem ficha) "+(x.titulo||"")))}</p>
     ${(x.anuncios||[]).length?`<div class="tags anun">${x.anuncios.map(a=>`<span>${esc(a)}</span>`).join("")}</div>`:""}
     <div class="tags">${(x.tags||[]).slice(0,8).map(t=>`<span>${esc(t)}</span>`).join("")}</div>
@@ -1376,17 +1389,17 @@ function cartaoClipe(x,comEstado,comCategoria,comSelecao){return `<div class="bi
       <button onclick="bMuda('${jsesc(x.id)}','${x.estado=="disponivel"?"usado":"disponivel"}')">${x.estado=="disponivel"?"Marcar como usado":"Voltar para disponíveis"}</button>
       <button class="icone" title="Apagar do servidor" onclick="bApagarClipe('${jsesc(x.id)}')"><svg class="ic"><use href="#i-lixo"/></svg></button></div>
   </div></div>`}
-function botaoEstudo(D,escopo){const S=D.estudo,sem=D.contagem.sem_estudo,[qm,pm]=QUEM[D.motor]||QUEM["claude-opus-5"];
+function botaoEstudo(D,escopo){const S=D.estudo,sem=D.contagem.sem_estudo,[qm,pm]=QUEM[D.motor]||QUEM["claude-opus-5-5"];
   return S.rodando?`<span class="cinza">estudando ${S.feitos}/${S.total} · US$ ${num(S.usd,3)}</span>`
     :sem?`<button class="pri" onclick='bEstudar(${sem},"${D.motor}",${attrJson(escopo)})' ${D.motor=="gemini"&&!D.gemini?"disabled title='configure a chave do Gemini (⚙)'":""}>Estudar ${sem} sem ficha com ${qm} (~US$ ${num(sem*pm)})</button>`
     :(S.erro?`<span style="color:var(--verm)">${esc(S.erro)} <button onclick="bLimpaErro()" title="dispensar">✕</button></span>`:"")}
 async function bLimpaErro(){try{await post("/api/biblioteca/limpar-erro");bibl()}catch(e){alert(e.message)}}
-function botaoReestudo(D,escopo){const S=D.estudo,n=D.contagem.descartado,[qm,pm]=QUEM[D.motor]||QUEM["claude-opus-5"];
+function botaoReestudo(D,escopo){const S=D.estudo,n=D.contagem.descartado,[qm,pm]=QUEM[D.motor]||QUEM["claude-opus-5-5"];
   if(S.rodando)return `<span class="cinza">estudando ${S.feitos}/${S.total} · US$ ${num(S.usd,3)}</span>`;
   if(S.erro)return `<span style="color:var(--verm)">${esc(S.erro)} <button onclick="bLimpaErro()" title="dispensar">✕</button></span>`;
   if(!n)return "";
   return `<button onclick='bReestudar(${n},"${D.motor}",${attrJson(escopo)})'>Reestudar ${n} descartado(s) com ${qm} (~US$ ${num(n*pm)})</button>`}
-async function bReestudar(n,motor,escopo){const [q,p]=QUEM[motor]||QUEM["claude-opus-5"];
+async function bReestudar(n,motor,escopo){const [q,p]=QUEM[motor]||QUEM["claude-opus-5-5"];
   if(!confirm(`${q[0].toUpperCase()+q.slice(1)} vai assistir de novo ${n} clipe(s) descartado(s) e refazer a ficha. Só volta para Disponíveis quem não tiver nenhum texto na tela. ~US$ ${num(n*p)}. Começar?`))return;
   try{await post("/api/biblioteca/estudar?refazer=1&"+new URLSearchParams(escopo));bibl()}catch(e){alert(e.message)}}
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Atlas Editor — instalação local (Mac ou Linux).
 #
-#   curl -fsSL https://raw.githubusercontent.com/dankeeps/atlas-editor/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/heppgabriel/atlas-editor/main/install.sh | bash
 #
 # Baixa o projeto, monta o ambiente Python, baixa os modelos de IA, cria um ícone
 # na área de trabalho (iniciar.sh) e abre o editor no navegador. Pode rodar de novo
@@ -9,9 +9,11 @@
 # repositório). Depois da primeira vez, o ícone já basta — sem precisar do terminal.
 set -euo pipefail
 
-REPO_URL="https://github.com/dankeeps/atlas-editor.git"
+REPO_URL="https://github.com/heppgabriel/atlas-editor.git"
 DEST="${ATLAS_DEST:-$HOME/Atlas Editor}"
 export PORTA="${PORTA:-4123}"
+# Homebrew recém-instalado ainda não está no PATH desta janela do Terminal.
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 
 echo "== Atlas Editor — instalação local =="
 echo
@@ -31,7 +33,7 @@ if [ ${#falta[@]} -gt 0 ]; then
   echo "Faltam estas dependências: ${falta[*]}"
   if [[ "$OSTYPE" == darwin* ]] && command -v brew >/dev/null 2>&1; then
     echo "Instalando com Homebrew (pode pedir sua senha)..."
-    brew install "${falta[@]}"
+    brew install "${falta[@]/python3.12/python@3.12}"
     command -v python3.12 >/dev/null 2>&1 && PYTHON=python3.12
   else
     echo

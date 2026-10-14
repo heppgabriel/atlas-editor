@@ -35,10 +35,12 @@ momento que o editor planejou.
 ## Quando pedir busca (só na primeira resposta)
 
 - Momento que a biblioteca não cobre bem: deixe `broll` = null e peça busca.
-- TikTok (vertical, criadores dos EUA): cada busca = um tipo de imagem, `nome` curto em português, 2 ou 3 `termos` EM
-  INGLÊS que descrevem a CENA ("woman heavy barbell squat gym", "glute bridge resistance band living room") e os números
-  dos `momentos` que ela atende. Evite termos que trazem gente explicando para a câmera ("how to", "tips", "mistakes").
-  Cada busca traz ~15–30 clipes, todos guardados na biblioteca: agrupe momentos parecidos numa busca só.
+- Buscas (`buscas`): primeiro nos bancos de vídeo (Pexels, Pixabay, Wikimedia Commons e NASA, pelo Get B-rolls); se eles
+  trouxerem pouco, o TikTok (vertical, criadores dos EUA) completa. Cada busca = um tipo de imagem, `nome` curto em
+  português, 2 ou 3 `termos` EM INGLÊS que descrevem a CENA, em palavras simples que um banco de vídeo indexa ("woman
+  heavy barbell squat gym", "glute bridge resistance band living room") e os números dos `momentos` que ela atende.
+  Evite termos que trazem gente explicando para a câmera ("how to", "tips", "mistakes"). Agrupe momentos parecidos numa
+  busca só.
 - YouTube (horizontal, para card ou dividida): famoso, filme, notícia, lugar, produto ou esporte específico. `termos` é
   UMA busca na língua em que o vídeo existe; `pedido` diz em português exatamente o que o trecho precisa mostrar.
 - Depois das buscas você recebe as opções novas (já com ficha) e escolhe de novo, sem pedir mais buscas.

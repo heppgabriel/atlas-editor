@@ -14,7 +14,7 @@ Sem EasyPanel, sem nenhuma automação de terceiros: é Docker puro.
 ## Subir
 
 ```sh
-git clone https://github.com/dankeeps/atlas-editor.git
+git clone https://github.com/heppgabriel/atlas-editor.git
 cd atlas-editor/deploy
 docker compose up -d --build
 ```

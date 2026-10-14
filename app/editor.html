@@ -32,6 +32,16 @@ input[type=range]:focus{box-shadow:none}
 #meio{display:flex;height:calc(100% - 52px - 404px)}
 #palco{flex:1;display:flex;align-items:center;justify-content:center;background:var(--palco);position:relative;min-width:0}
 #cv{height:calc(100% - 28px);aspect-ratio:9/16;background:#000;border-radius:10px;cursor:grab;box-shadow:0 0 0 1px rgba(255,255,255,.06),0 20px 50px rgba(0,0,0,.6)}
+#chatEd{width:360px;border-left:1px solid var(--linha);background:var(--painel);display:flex;flex-direction:column;min-height:0}
+#chatEd[hidden]{display:none}#chatEd .cab{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--linha)}
+#chatEd .cab b{flex:1;font-size:14px}#chatMsgs{flex:1;overflow:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+#chatMsgs .m{max-width:92%;padding:8px 11px;border-radius:12px;font-size:13px;line-height:1.45;white-space:pre-wrap;word-wrap:break-word}
+#chatMsgs .eu{align-self:flex-end;background:var(--azul);color:#fff}#chatMsgs .ia{align-self:flex-start;background:var(--painel2);border:1px solid var(--linha)}
+#chatMsgs .ia.erro{border-color:var(--verm)}#chatMsgs .ops{display:block;margin-top:6px;color:var(--sub);font-size:12px}
+#chatMsgs .ops button{margin-top:6px;font-size:12px;padding:3px 9px}#chatMsgs .vazio{color:var(--sub);font-size:12.5px;line-height:1.5}
+#chatEd .env{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--linha)}
+#chatTxt{flex:1;resize:none;height:64px;font:inherit;font-size:13px;color:var(--txt);background:var(--ctl);border:0;border-radius:9px;padding:8px 10px;outline:none}
+#bChat.on{background:var(--azul);color:#fff}
 #insp{width:370px;border-left:1px solid var(--linha);background:var(--painel);overflow:auto;padding:16px}
 #insp h3{margin:0 0 12px;font-size:15px;font-weight:600;letter-spacing:-.015em}#insp .campo{display:flex;align-items:center;gap:8px;margin:8px 0}
 #insp .campo label{width:118px;color:var(--sub);flex:none;font-size:12.5px}#insp .campo input[type=text]{flex:1;min-width:0}#insp .campo select{flex:1;min-width:0}
@@ -76,6 +86,10 @@ input[type=range]:focus{box-shadow:none}
 #regua span{position:absolute;top:5px;font-size:10px;color:var(--sub2);transform:translateX(-50%);font-variant-numeric:tabular-nums}
 #regua i{position:absolute;bottom:0;width:1px;height:5px;background:rgba(255,255,255,.18)}
 .trilha{height:44px;position:relative;border-bottom:1px solid var(--linha)}
+#tl.soltar #tCena{outline:2px dashed var(--acc,#6aa8ff);outline-offset:-2px;background:rgba(106,168,255,.08)}
+#tl.soltar::after{content:"Solte para colocar o B-roll aqui";position:absolute;pointer-events:none;right:16px;bottom:10px;font-size:12px;
+  padding:4px 10px;border-radius:6px;background:rgba(0,0,0,.7);color:#fff}
+#tl{position:relative}#grade.soltar{outline:2px dashed var(--acc,#6aa8ff);outline-offset:-6px}
 .it{position:absolute;top:6px;height:32px;border-radius:6px;overflow:hidden;white-space:nowrap;font-size:11px;font-weight:500;padding:4px 7px;cursor:pointer;
   border:0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);user-select:none;line-height:1.25;color:#fff}
 .it .h{position:absolute;top:0;width:7px;height:100%;cursor:ew-resize}.it .h.e{left:0}.it .h.d{right:0}
@@ -118,6 +132,7 @@ input[type=range]:focus{box-shadow:none}
  <symbol id="i-salvar" viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z M9 4v5h6V4 M8 13h8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
  <symbol id="i-olho" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
  <symbol id="i-render" viewBox="0 0 24 24"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M4 16v3h16v-3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+ <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4.5 5.5h15v10h-8l-4.5 3.5v-3.5h-2.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5l12 7.5-12 7.5z" fill="currentColor"/></symbol>
  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 4.5h3.2v15H8zM12.8 4.5H16v15h-3.2z" fill="currentColor"/></symbol>
  <symbol id="i-broll" viewBox="0 0 24 24"><rect x="2.8" y="5" width="18.4" height="14" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 5v14M16 5v14M2.8 12h18.4" stroke="currentColor" stroke-width="1.2" opacity=".7"/></symbol>
@@ -146,11 +161,18 @@ input[type=range]:focus{box-shadow:none}
   <button id="bPrevia" title="Gera o quadro atual com o motor do render"><svg class="ic"><use href="#i-olho"/></svg>Prévia real</button>
   <span class="esp"></span>
   <div id="barra"><i></i></div><span id="status">carregando…</span>
+  <button id="bChat" title="Pedir alterações ao Claude, conversando"><svg class="ic"><use href="#i-chat"/></svg>Chat</button>
   <button id="bRender" class="pri"><svg class="ic"><use href="#i-render"/></svg>Renderizar</button>
 </div>
 <div id="meio">
   <div id="palco"><canvas id="cv" width="540" height="960"></canvas></div>
   <div id="insp"></div>
+  <div id="chatEd" hidden>
+    <div class="cab"><b>Chat do editor</b><button id="chatLimpar" title="Começar uma conversa nova">Limpar</button><button id="chatFechar">Fechar</button></div>
+    <div id="chatMsgs"></div>
+    <div class="env"><textarea id="chatTxt" placeholder="Ex.: coloque um letreiro em cada dia que ele fala (dia 7, 14, 30)"></textarea>
+      <button id="chatIr" class="pri">Enviar</button></div>
+  </div>
 </div>
 <div id="baixo">
   <div id="ctl">
@@ -278,7 +300,7 @@ const pool={};
 function itemDe(c){return porSrc[c.src]||{src:c.src,proxy:c.src,w:0,h:0,dur:0,nome:c.slot||"?"}}
 function numero(c){return [...P.cenas].sort((a,b)=>a.ini-b.ini).indexOf(c)+1}
 function midia(c){const it=itemDe(c),k=it.proxy;if(pool[k])return pool[k];
-  if(/\.(jpe?g|png)$/i.test(k)){const im=new Image();im.src=f(k);return pool[k]={img:im,it}}
+  if(/\.(jpe?g|png|webp)$/i.test(k)){const im=new Image();im.src=f(k);return pool[k]={img:im,it}}
   const v=document.createElement("video");v.src=f(k);v.muted=true;v.preload="auto";v.playsInline=true;return pool[k]={vid:v,it}}
 // Antecipa o carregamento de quem vai entrar em cena. Antes, o clipe só começava a baixar no
 // instante exato em que a cena ficava ativa; no Mac local isso era instantâneo (disco), mas na
@@ -775,7 +797,7 @@ async function abreAcervo(c){
 }
 function usarItem(a){snap();alvoCena.src=a.src;alvoCena.id=a.id;alvoCena.slot="editor";alvoCena.crop=a.crop||null;if(!alvoCena.crop)delete alvoCena.crop;alvoCena.src_ini=0;$("#modal").style.display="none";escondePrevia();marcaSujo();desenharTL();inspetor()}
 function mostraPrevia(a){
-  const ehImagem=/\.(jpe?g|png)$/i.test(a.proxy||"");const pop=$("#previaHover"),vid=pop.querySelector("video"),img=pop.querySelector("img");
+  const ehImagem=/\.(jpe?g|png|webp)$/i.test(a.proxy||"");const pop=$("#previaHover"),vid=pop.querySelector("video"),img=pop.querySelector("img");
   if(ehImagem){vid.pause();vid.removeAttribute("src");vid.style.display="none";img.style.display="block";img.src=f(a.proxy)}
   else{img.style.display="none";vid.style.display="block";vid.src=f(a.proxy||a.src)}
   pop.querySelector(".legenda").textContent=`${a.nome} · ${a.id}${a.dur?" · "+a.dur.toFixed(0)+"s":""}`;
@@ -806,13 +828,51 @@ $("#fExpert").onchange=async()=>{opcoesOfertaEd($("#fOferta"),$("#fExpert").valu
 $("#fOferta").onchange=async()=>{await buscaBiblioteca();grade()};
 $("#fFechar").onclick=()=>{$("#modal").style.display="none";escondePrevia()};
 $("#fEnviar").onclick=()=>$("#fArq").click();
-$("#fArq").onchange=async e=>{const arqs=[...e.target.files];let ultimo=null,feitos=0;$("#fEnviar").disabled=true;
-  try{for(const[k,a]of arqs.entries()){status(`enviando ${k+1}/${arqs.length}: ${a.name}…`);
-    const res=await fetch(`/api/upload?p=${encodeURIComponent(PROJ)}&nome=${encodeURIComponent(a.name)}`,{method:"POST",body:a}),r=await res.json();
-    if(!res.ok||!r.ok)throw new Error(r.erro||"Não foi possível enviar o arquivo.");AC.push(r.item);porSrc[r.item.src]=r.item;ultimo=r.item;feitos++}
+// Envia um arquivo do computador para o acervo do projeto (categoria "Enviados do computador") e devolve o item.
+const MIDIA_OK=/\.(mp4|mov|m4v|webm|mkv|avi|jpe?g|png|webp)$/i;
+async function enviarB(a,rotulo){status(`enviando ${rotulo}: ${a.name}…`);
+  const res=await fetch(`/api/upload?p=${encodeURIComponent(PROJ)}&nome=${encodeURIComponent(a.name)}`,{method:"POST",body:a});
+  let r={};try{r=await res.json()}catch(e){}
+  if(!res.ok||!r.ok)throw new Error(r.erro||"Não foi possível enviar o arquivo.");
+  if(!porSrc[r.item.src]){AC.push(r.item);porSrc[r.item.src]=r.item}return r.item}
+async function enviarParaAcervo(arqs){let ultimo=null,feitos=0;$("#fEnviar").disabled=true;
+  try{for(const[k,a]of arqs.entries()){ultimo=await enviarB(a,`${k+1}/${arqs.length}`);feitos++}
     montarCategorias();$("#fCat").value="Enviados do computador";grade();status(`${feitos} arquivo(s) enviado(s) · disponíveis em Arquivos`);
     if(ultimo&&arqs.length==1&&alvoCena)usarItem(ultimo)
-  }catch(err){montarCategorias();grade();status(`Erro no envio: ${err.message}`)}finally{e.target.value="";$("#fEnviar").disabled=false}};
+  }catch(err){montarCategorias();grade();status(`Erro no envio: ${err.message}`)}finally{$("#fEnviar").disabled=false}}
+$("#fArq").onchange=async e=>{const arqs=[...e.target.files];e.target.value="";await enviarParaAcervo(arqs)};
+// Arrastar do computador direto para a timeline: cada arquivo vira um B-roll a partir do ponto onde foi solto
+// (vários arquivos entram um depois do outro). Soltar na grade do "Escolher B-roll" só guarda no acervo.
+function soArquivos(e){return e.dataTransfer&&[...e.dataTransfer.types].includes("Files")}
+async function soltarNaTimeline(arqs,t){arqs=arqs.filter(a=>MIDIA_OK.test(a.name));
+  if(!arqs.length){status("Arraste vídeos (mp4, mov, webm…) ou imagens (jpg, png, webp).");return}
+  snap();let ini=+clamp(t,0,Math.max(0,P.dur-.5)).toFixed(2),feitos=0,ultima=null;
+  for(const[k,a]of arqs.entries()){
+    try{const it=await enviarB(a,`${k+1}/${arqs.length}`);
+      const dur=it.dur?Math.min(it.dur,4):2.5,fim=+Math.min(P.dur,ini+dur).toFixed(2);if(fim-ini<.2)break;
+      const c={tipo:"cheia",ini,fim,trans:"whip",saida:"whip",src:it.src,id:it.id,slot:"editor",src_ini:0};
+      P.cenas.push(c);ultima=c;ini=fim;feitos++}
+    catch(err){status(`Erro no envio de ${a.name}: ${err.message}`)}}
+  if(!feitos){desfazer.pop();return}
+  sel={k:"cena",i:P.cenas.indexOf(ultima)};montarCategorias();
+  marcaSujo();desenharTL();inspetor();status(`${feitos} B-roll(s) colocado(s) na timeline · alterações não salvas`)}
+(()=>{const tl=$("#tl");
+  tl.addEventListener("dragover",e=>{if(!soArquivos(e))return;e.preventDefault();e.dataTransfer.dropEffect="copy";tl.classList.add("soltar")});
+  tl.addEventListener("dragleave",e=>{if(!tl.contains(e.relatedTarget))tl.classList.remove("soltar")});
+  tl.addEventListener("drop",e=>{if(!soArquivos(e))return;e.preventDefault();tl.classList.remove("soltar");if(!P)return;
+    const r=$("#trilhas").getBoundingClientRect(),x=e.clientX-r.left;
+    soltarNaTimeline([...e.dataTransfer.files],x>=0?x/pps:pres.currentTime)});
+  const pl=$("#cv").parentElement;
+  if(pl){pl.addEventListener("dragover",e=>{if(soArquivos(e)){e.preventDefault();e.dataTransfer.dropEffect="copy"}});
+    pl.addEventListener("drop",e=>{if(!soArquivos(e)||!P)return;e.preventDefault();soltarNaTimeline([...e.dataTransfer.files],pres.currentTime)})}
+  const g=$("#grade");
+  g.addEventListener("dragover",e=>{if(!soArquivos(e))return;e.preventDefault();g.classList.add("soltar")});
+  g.addEventListener("dragleave",()=>g.classList.remove("soltar"));
+  g.addEventListener("drop",e=>{if(!soArquivos(e))return;e.preventDefault();g.classList.remove("soltar");
+    enviarParaAcervo([...e.dataTransfer.files].filter(a=>MIDIA_OK.test(a.name)))});
+  window.addEventListener("dragover",e=>{if(soArquivos(e))e.preventDefault()});   // soltar fora não abre o arquivo no navegador
+  window.addEventListener("drop",e=>{if(soArquivos(e))e.preventDefault()});
+})();
 
 // ================================================================ adicionar
 $("#addCena").onclick=()=>{snap();const t=+pres.currentTime.toFixed(2);const c={tipo:"cheia",ini:t,fim:Math.min(P.dur,t+2.5),trans:"whip",saida:"whip",src:AC[0].src,id:AC[0].id,slot:"editor",src_ini:0};
@@ -846,6 +906,47 @@ cv.onpointerdown=e=>{const r=cv.getBoundingClientRect(),k=W/r.width,x=(e.clientX
 function toggle(){garanteAudio();actx.resume();if(pres.paused)pres.play();else pres.pause()}
 const icoPlay=t=>$("#bPlay").innerHTML=`<svg class="ic g"><use href="#i-${t}"/></svg>`;
 $("#bPlay").onclick=toggle;pres.onplay=()=>icoPlay("pause");pres.onpause=()=>icoPlay("play");
+// ================================================================ chat do editor
+// O Claude lê a fala (com o tempo de cada palavra), os letreiros, B-rolls e efeitos da tela e devolve operações; o editor
+// aplica aqui, no plano da tela: entra no Desfazer e só vai para o disco quando salvar.
+let CHAT=[],chatOcupado=false;
+function chatDesenha(){const el=$("#chatMsgs");
+  el.innerHTML=CHAT.length?CHAT.map((m,k)=>`<div class="m ${m.quem}${m.erro?" erro":""}">${esc(m.txt)}${m.n!=null?`<span class="ops">${m.n?`${m.n} alteração(ões) aplicada(s) na timeline${m.descartadas?` · ${m.descartadas} ignorada(s)`:""}`:"nenhuma alteração"}${m.n&&m.desfeito!==true&&k==ultimaComOps()?`<br><button data-k="${k}" class="chatDesf">Desfazer isto</button>`:""}${m.desfeito?" · desfeito":""}</span>`:""}</div>`).join("")
+    :`<div class="vazio">Peça alterações deste anúncio em português. Exemplos:<br>· coloque um letreiro em cada dia que ele fala (dia 7, 14, 30)<br>· apague os letreiros depois de 1:00<br>· deixe preto e branco quando ele fala da dor<br>O que o Claude fizer aparece na timeline; confira e salve.</div>`;
+  el.querySelectorAll(".chatDesf").forEach(b=>b.onclick=()=>{const m=CHAT[+b.dataset.k];if(m.snap==null)return;
+    P=JSON.parse(m.snap);m.desfeito=true;sel=null;marcaSujo();desenharTL();inspetor();chatDesenha()});
+  el.scrollTop=el.scrollHeight}
+function ultimaComOps(){for(let k=CHAT.length-1;k>=0;k--)if(CHAT[k].n)return k;return -1}
+function aplicaOps(ops){const T=ES.letreiro.topo_padrao||.12,apaga={blocos:[],cenas:[],escuro:[],pb:[],flash:[],glitch:[]};
+  for(const o of ops){
+    if(o.op=="add_letreiro")P.blocos.push({linhas:o.linhas.map(l=>[l.estilo,l.texto,l.t,null]),fim:o.fim,topo:o.topo>=0?o.topo:T,atras:false});
+    else if(o.op=="editar_letreiro"){const b=P.blocos[o.i];if(!b)continue;if(o.linhas.length)b.linhas=o.linhas.map(l=>[l.estilo,l.texto,l.t,null]);
+      if(o.fim>=0)b.fim=o.fim;if(o.topo>=0)b.topo=o.topo}
+    else if(o.op=="apagar_letreiro")apaga.blocos.push(o.i);
+    else if(o.op=="apagar_broll")apaga.cenas.push(o.i);
+    else if(o.op=="ajustar_broll"){const c=P.cenas[o.i];if(!c)continue;if(o.ini>=0)c.ini=o.ini;if(o.fim>=0)c.fim=o.fim;if(o.tipo)c.tipo=o.tipo}
+    else if(o.op=="add_efeito"){const fim=o.fim>o.ini?o.fim:o.ini+1.5;
+      if(o.tipo=="flash")P.flash.push(o.ini);else if(o.tipo=="glitch")P.glitch.push([o.ini,Math.max(.15,+(fim-o.ini).toFixed(2))]);else P[o.tipo].push([o.ini,fim])}
+    else if(o.op=="apagar_efeito")apaga[o.tipo].push(o.i);
+    else if(o.op=="legenda"){const l=P.legendas[o.i];if(l)l.oculto=o.ocultar?true:null}}
+  for(const[k,is]of Object.entries(apaga))[...new Set(is)].sort((a,b)=>b-a).forEach(i=>P[k].splice(i,1))}
+async function chatEnviar(){const t=$("#chatTxt").value.trim();if(!t||!P||chatOcupado)return;
+  chatOcupado=true;$("#chatIr").disabled=true;$("#chatTxt").value="";
+  const hist=CHAT.filter(m=>!m.erro).map(m=>({quem:m.quem,txt:m.txt}));CHAT.push({quem:"eu",txt:t});
+  CHAT.push({quem:"ia",txt:"pensando…"});chatDesenha();const m=CHAT[CHAT.length-1];
+  try{const res=await fetch(api("/api/editor/chat"),{method:"POST",body:JSON.stringify({plano:P,mensagem:t,historico:hist,agora:+pres.currentTime.toFixed(2)})});
+    let r={};try{r=await res.json()}catch(e){}
+    if(res.status==404)throw new Error("o servidor ainda está na versão antiga: reinicie o Atlas (atalho Reiniciar Atlas Editor) e recarregue esta página");
+    if(!res.ok||!r.ok)throw new Error(r.erro||`o servidor respondeu ${res.status}`);
+    m.txt=r.resposta||"Pronto.";m.n=r.operacoes.length;m.descartadas=r.descartadas||0;
+    if(m.n){m.snap=JSON.stringify(P);snap();aplicaOps(r.operacoes);sel=null;marcaSujo();desenharTL();inspetor()}}
+  catch(e){m.txt="Não deu certo: "+e.message;m.erro=true}
+  finally{chatOcupado=false;$("#chatIr").disabled=false;chatDesenha();$("#chatTxt").focus()}}
+$("#bChat").onclick=()=>{const c=$("#chatEd");c.hidden=!c.hidden;$("#bChat").classList.toggle("on",!c.hidden);if(!c.hidden){chatDesenha();$("#chatTxt").focus()}};
+$("#chatFechar").onclick=()=>$("#bChat").click();
+$("#chatLimpar").onclick=()=>{if(chatOcupado)return;CHAT=[];chatDesenha()};
+$("#chatIr").onclick=chatEnviar;
+$("#chatTxt").onkeydown=e=>{if(e.key=="Enter"&&!e.shiftKey){e.preventDefault();chatEnviar()}};
 $("#bDesfazer").onclick=()=>{if(!desfazer.length)return;P=JSON.parse(desfazer.pop());sel=null;marcaSujo();desenharTL();inspetor()};
 async function salvar(){status("salvando…");const r=await (await fetch(api("/api/salvar"),{method:"POST",body:JSON.stringify(P)})).json();
   if(r.ok){P=r.plano;sujo=false;status("salvo "+new Date().toLocaleTimeString().slice(0,5));atualizaSfx();desenharTL();inspetor()}else status("erro ao salvar: "+(r.erro||""))}
@@ -861,7 +962,7 @@ async function acompanha(){const s=(await (await fetch("/api/status")).json())[P
   else{b.style.display="none";$("#bRender").disabled=false;if(s.erro)status("erro no render: "+s.erro.slice(0,140));else if(s.saida)status(`pronto (${s.tempo||""}): `+s.saida.split("/").pop())}}
 $("#versao").onchange=e=>{if(sujo&&!confirm("Há alterações não salvas. Trocar de versão mesmo assim?")){e.target.value=V;return}paraSons();carregar(e.target.value)};
 window.onbeforeunload=e=>{if(sujo){e.preventDefault();e.returnValue=""}};
-document.onkeydown=e=>{if(e.target.tagName=="INPUT"||e.target.tagName=="SELECT")return;
+document.onkeydown=e=>{if(e.target.tagName=="INPUT"||e.target.tagName=="SELECT"||e.target.tagName=="TEXTAREA")return;
   if(e.code=="Space"){e.preventDefault();toggle()}
   else if(e.key=="ArrowLeft"||e.key=="ArrowRight"){e.preventDefault();pres.pause();pres.currentTime=clamp(pres.currentTime+(e.key=="ArrowLeft"?-1:1)*(e.shiftKey?1:1/FPS),0,P.dur)}
   else if((e.metaKey||e.ctrlKey)&&e.key=="s"){e.preventDefault();salvar()}

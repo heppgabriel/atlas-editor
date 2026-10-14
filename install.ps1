@@ -1,6 +1,6 @@
 # Atlas Editor - instalacao local no Windows.
 #
-#   irm https://raw.githubusercontent.com/dankeeps/atlas-editor/main/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/heppgabriel/atlas-editor/main/install.ps1 | iex
 #
 # Baixa o projeto, monta o ambiente Python, baixa os modelos de IA, cria um
 # atalho na area de trabalho e abre o editor no navegador. Pode rodar de novo
@@ -14,7 +14,7 @@
 $ErrorActionPreference = "Stop"
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
 
-$RepoUrl = "https://github.com/dankeeps/atlas-editor.git"
+$RepoUrl = "https://github.com/heppgabriel/atlas-editor.git"
 $Dest = if ($env:ATLAS_DEST) { $env:ATLAS_DEST } else { Join-Path $env:USERPROFILE "Atlas Editor" }
 $env:PORTA = if ($env:PORTA) { $env:PORTA } else { "4123" }
 

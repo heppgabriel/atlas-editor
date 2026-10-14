@@ -144,6 +144,7 @@ def capa(arq, destino, dur):
 def chave_de(d):
     if d.get("fonte") == "tiktok" and d.get("tiktok_id"): return "tiktok:" + str(d["tiktok_id"])
     if d.get("fonte") == "youtube": return f"youtube:{d.get('video_id')}:{int(d.get('yt_ini') or 0)}"
+    if d.get("gb_id"): return f"{d.get('fonte')}:{d['gb_id']}"           # Get B-rolls (Pexels, Pixabay, Commons, NASA)
     return "arquivo:" + os.path.realpath(d["arquivo"])
 
 def achar(B, chave):
@@ -319,7 +320,7 @@ def motor_estudo():
     Gemini escolhido sem nenhuma chave dele -> Claude Opus."""
     import chaves, gemini
     m = MOTOR_FORCADO or chaves.ler().get("modelo_estudo") or "gemini"
-    return "claude-opus-5" if m == "gemini" and not gemini.chave() else m
+    return "claude-opus-5-5" if m == "gemini" and not gemini.chave() else m
 
 def estudar_pendentes(ids=None, contexto="", ao_cobrar=None, log=print, paralelo=6, progresso=None, refazer=False):
     """Estuda (uma vez) os clipes sem ficha. Claude: folha de contato por clipe (lib/estudo.py, precisa do Python da .venv);

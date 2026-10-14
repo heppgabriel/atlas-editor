@@ -20,7 +20,7 @@ uso: .venv/bin/python lib/auto.py <pasta do projeto>        (o pedido fica em <p
 import os, sys, json, time, re, glob, shutil, signal, subprocess, threading, traceback, unicodedata, hashlib
 from concurrent.futures import ThreadPoolExecutor
 LIB = os.path.dirname(os.path.abspath(__file__)); SKILL = os.path.dirname(LIB); sys.path.insert(0, LIB)
-import comum, chaves, ops, ia, cortes_auto, custos, biblioteca, gemini, youtube, tiktok, limpeza_cortes
+import comum, chaves, ops, ia, cortes_auto, custos, biblioteca, gemini, youtube, tiktok, limpeza_cortes, get_brolls
 from ia import texto
 
 PY = sys.executable; ESTUDIO = os.path.join(LIB, "estudio.py")
@@ -441,6 +441,39 @@ def disponiveis(ctx):
 def rotulo_pasta(ctx):
     F = filtro(ctx); return f"{F['expert']} › {F['oferta']}" if F["expert"] else (F["nicho"] or "—")
 
+RESERVA_MIN = 3        # menos clipes que isso no Get B-rolls -> o TikTok (Apify) completa a busca
+
+def pode_buscar(ped):
+    """Buscas novas na edição: o Get B-rolls é grátis (Pexels, Pixabay, Commons, NASA); o TikTok pela Apify é a reserva."""
+    return bool(buscas_permitidas(ped) and ped.get("buscar_tiktok", True))
+
+def buscar_clipes(ctx, b, categoria):
+    """Uma busca da edição: Get B-rolls primeiro; se trouxer menos de RESERVA_MIN clipes e houver token da Apify, o TikTok
+    completa. Devolve (ids, novos) — os novos vão para a pasta da categoria na oferta."""
+    d, est = ctx.d, ctx.est; P = ctx.P(); nicho = P.get("nicho") or P.get("oferta") or ""
+    ex, of, _ = pasta_da_oferta(ctx); campos = dict(expert=ex, oferta=of, categoria=categoria) if ex else {}
+    ids = []
+    try:
+        cands, erros = get_brolls.buscar(b["termos"], 4)
+        for e in erros: est.log(f"Get B-rolls · '{b['nome']}': {e}")
+        for x in cands:
+            try:
+                arq = get_brolls.baixar(x, biblioteca.pasta("videos"))
+                i = biblioteca.adicionar(arquivo=arq, termo=", ".join(b["termos"][:2]), nicho=nicho, descricao=x["titulo"][:300],
+                                         **campos, **get_brolls.campos_biblioteca(x))
+                if ESTUDA["ok"]: biblioteca.estudar_pendentes([i], contexto=nicho, ao_cobrar=ctx.cobrou_estudo, log=est.log)
+                ids.append(i)
+            except Exception as e: est.log(f"Get B-rolls · '{b['nome']}': {str(e)[:160]}")
+        est.log(f"Get B-rolls · '{b['nome']}': {len(ids)} clipe(s)")
+    except Exception as e: est.log(f"Get B-rolls · '{b['nome']}' não deu certo: {str(e)[:200]}")
+    novos = list(ids)
+    if len(ids) < RESERVA_MIN and custos.token_apify():
+        est.log(f"'{b['nome']}': poucos clipes nos bancos, o TikTok (Apify) completa")
+        res = tiktok.buscar(d, b["nome"], b["termos"][:3], n=15, estudar=ESTUDA["ok"], log=est.log, ao_cobrar_estudo=ctx.cobrou_estudo,
+                            campos=campos or None)
+        ids += res["ids"]; novos += res["novos"]
+    return ids, novos
+
 def guardar_na_oferta(ctx, ids_novos, categoria):
     """Clipes novos de uma busca da edição vão para a pasta da categoria dentro da oferta (como na aba Busca de B-roll)."""
     ex, of, _ = pasta_da_oferta(ctx)
@@ -662,11 +695,11 @@ def youtube_para_biblioteca(ctx, y, pl, nicho):
 def et_broll(ctx):
     d, est, ped, P = ctx.d, ctx.est, ctx.ped, ctx.P(); pl = ctx.aux("plano"); nicho = P.get("nicho") or P.get("oferta") or ""
     durs = duracoes_momentos(ctx, pl); todos = list(range(len(pl["momentos"]))); escolhas = {}
-    pode_tt = bool(buscas_permitidas(ped) and ped.get("buscar_tiktok", True) and custos.token_apify())
+    pode_tt = pode_buscar(ped)
     pode_yt = bool(buscas_permitidas(ped) and ped.get("buscar_youtube", True) and youtube.disponivel())
     pend = [x["id"] for x in disponiveis(ctx) if not x.get("estudo")]
     est.log(f"B-roll só da pasta {rotulo_pasta(ctx)}: 1º os clipes com a etiqueta do anúncio, 2º o resto da pasta"
-            + ("; somente arquivos já salvos, sem novas buscas" if not buscas_permitidas(ped) else ", 3º busca no TikTok se faltar"))
+            + ("; somente arquivos já salvos, sem novas buscas" if not buscas_permitidas(ped) else ", 3º busca nos bancos de vídeo (Get B-rolls), com o TikTok completando se faltar"))
     if pend:                                              # clipes da pasta ainda sem ficha (importados, buscas antigas): uma vez só
         est.log(f"estudando {len(pend)} clipe(s) da biblioteca que ainda não tinham ficha ({biblioteca.motor_estudo()}; fica guardado)…")
         erros = []
@@ -678,7 +711,7 @@ def et_broll(ctx):
         msg = [texto(f"# Momentos que precisam de B-roll\n\n{lista_momentos(ctx, pl, durs, quais)}"),
                texto("# Biblioteca (a ficha de cada clipe; 'limpos' = trechos sem texto, sem fala para a câmera, sem corte)\n\n"
                      + ("\n".join(biblioteca.resumo_estudo(B[i]) for i in cands) or "(nada que combine)")),
-               texto((f"Buscas novas no TikTok permitidas: {MAX_BUSCAS if pode_tt else 0}. Pedidos ao YouTube permitidos: {MAX_YOUTUBE if pode_yt else 0}.\n"
+               texto((f"Buscas novas (bancos de vídeo; o TikTok completa se faltar) permitidas: {MAX_BUSCAS if pode_tt else 0}. Pedidos ao YouTube permitidos: {MAX_YOUTUBE if pode_yt else 0}.\n"
                       if primeira else "Estas são as opções depois das buscas. Não peça novas buscas (listas vazias).\n")
                      + "Para cada momento: escolha o clipe e o segundo de início (ini) DENTRO de um trecho limpo que caiba a duração do momento, "
                        "ou deixe broll = null e peça busca.")]
@@ -698,11 +731,9 @@ def et_broll(ctx):
     def uma_busca(b):
         try:
             if not buscas_permitidas(ped): raise Falha("Novas buscas desativadas para este anúncio.")
-            ex, of, _ = pasta_da_oferta(ctx)
-            res = tiktok.buscar(d, b["nome"], b["termos"][:3], n=15, estudar=ESTUDA["ok"], log=est.log, ao_cobrar_estudo=ctx.cobrou_estudo,
-                                campos=dict(expert=ex, oferta=of, categoria=b["nome"].capitalize()) if ex else None)
-            guardar_na_oferta(ctx, res["novos"], b["nome"].capitalize())
-            with lock: novos.extend(res["ids"])
+            ids, novos_b = buscar_clipes(ctx, b, b["nome"].capitalize())
+            guardar_na_oferta(ctx, novos_b, b["nome"].capitalize())
+            with lock: novos.extend(ids)
         except Exception as ex: est.log(f"busca '{b['nome']}' não deu certo: {str(ex)[:200]}")
         finally: est.custo(custos.resumo(d))
     def um_yt(y):
@@ -711,7 +742,7 @@ def et_broll(ctx):
             with lock: novos.extend(ids)
         except Exception as ex: est.log(f"YouTube '{y['nome']}' não deu certo: {str(ex)[:200]}")
     if buscas or yts:
-        est.log(f"{len(buscas)} busca(s) no TikTok · {len(yts)} pedido(s) ao YouTube")
+        est.log(f"{len(buscas)} busca(s) (Get B-rolls, TikTok de reserva) · {len(yts)} pedido(s) ao YouTube")
         with ThreadPoolExecutor(4) as ex: list(ex.map(lambda f: f[0](f[1]), [(uma_busca, b) for b in buscas] + [(um_yt, y) for y in yts]))
     faltam = [k for k in todos if k not in escolhas]
     if faltam and novos:
@@ -862,7 +893,7 @@ def et_encaixe(ctx):
     d, est, P = ctx.d, ctx.est, ctx.P(); E = comum.estilo(P["estilo"]); nicho = P.get("nicho") or P.get("oferta") or ""
     pend = [x["id"] for x in disponiveis(ctx) if not x.get("estudo")]
     est.log(f"B-roll só da pasta {rotulo_pasta(ctx)}: 1º os clipes com a etiqueta do anúncio, 2º o resto da pasta"
-            + ("; somente arquivos já salvos, sem novas buscas" if not buscas_permitidas(ctx.ped) else ", 3º busca no TikTok se faltar"))
+            + ("; somente arquivos já salvos, sem novas buscas" if not buscas_permitidas(ctx.ped) else ", 3º busca nos bancos de vídeo (Get B-rolls), com o TikTok completando se faltar"))
     if pend:                                              # clipes da pasta ainda sem ficha: o Gemini estuda uma vez
         est.log(f"estudando {len(pend)} clipe(s) da biblioteca que ainda não tinham ficha ({biblioteca.motor_estudo()}; fica guardado)…")
         erros = []
@@ -907,10 +938,10 @@ def et_revisao(ctx):
               for k, f in enumerate(enc.get("faltas", []))]
     novos, feitos = [], 0
     if itens:
-        pode_tt = bool(buscas_permitidas(ped) and ped.get("buscar_tiktok", True) and custos.token_apify())
+        pode_tt = pode_buscar(ped)
         r = ctx.pedir(conv, tira_pre(ctx) + [texto("PASSO 2 — REVISÃO (duplo check). Ficaram sem B-roll:\n" + "\n".join(itens) + "\n\n"
                                                    f"Para cada lacuna: (a) coloque um clipe da biblioteca que você ainda não usou (`adicionar`); "
-                                                   f"(b) peça uma busca específica no TikTok (`buscas`: nome curto, a `categoria` (pasta) da oferta "
+                                                   f"(b) peça uma busca específica nos bancos de vídeo (`buscas`: nome curto, a `categoria` (pasta) da oferta "
                                                    f"onde os clipes vão ficar — uma destas se servir: {', '.join(pasta_da_oferta(ctx)[2]) or 'nenhuma ainda'}; "
                                                    f"senão um nome novo curto —, 2 ou 3 termos EM INGLÊS que descrevem a CENA, e os números das lacunas; "
                                                    f"no máximo {MAX_BUSCAS_REVISAO if pode_tt else 0}, só "
@@ -920,16 +951,15 @@ def et_revisao(ctx):
         brolls += r["adicionar"]; feitos = len(r["adicionar"])
         buscas = [b for b in r["buscas"] if b["termos"]][:MAX_BUSCAS_REVISAO] if pode_tt else []
         if buscas:
-            est.log(f"{len(buscas)} busca(s) específica(s) no TikTok: " + ", ".join(b["nome"] for b in buscas))
+            est.log(f"{len(buscas)} busca(s) específica(s) (Get B-rolls, TikTok de reserva): " + ", ".join(b["nome"] for b in buscas))
             lock = threading.Lock()
             def uma(b):
                 try:
                     if not buscas_permitidas(ped): raise Falha("Novas buscas desativadas para este anúncio.")
-                    ex, of, _ = pasta_da_oferta(ctx)
-                    res = tiktok.buscar(d, b["nome"], b["termos"][:3], n=15, estudar=ESTUDA["ok"], log=est.log, ao_cobrar_estudo=ctx.cobrou_estudo,
-                                        campos=dict(expert=ex, oferta=of, categoria=b.get("categoria") or b["nome"]) if ex else None)
-                    guardar_na_oferta(ctx, res["novos"], b.get("categoria") or b["nome"])
-                    with lock: novos.extend(res["ids"])
+                    cat = b.get("categoria") or b["nome"]
+                    ids_b, novos_b = buscar_clipes(ctx, b, cat)
+                    guardar_na_oferta(ctx, novos_b, cat)
+                    with lock: novos.extend(ids_b)
                 except Exception as ex: est.log(f"busca '{b['nome']}' não deu certo: {str(ex)[:200]}")
                 finally: est.custo(custos.resumo(d))
             with ThreadPoolExecutor(3) as ex: list(ex.map(uma, buscas))
@@ -1157,7 +1187,7 @@ def main():
             ok, motivo = gemini.funciona(ao_cobrar=ctx.cobrou_gemini) if (quer_gemini and gemini.chave()) else (False, "não configurado")
             OLHO["ok"] = ok
             if biblioteca.motor_estudo() == "gemini" and not ok:
-                biblioteca.MOTOR_FORCADO = "claude-opus-5"; est.log(f"o Gemini não respondeu ({motivo}); o Claude estuda os clipes")
+                biblioteca.MOTOR_FORCADO = "claude-opus-5-5"; est.log(f"o Gemini não respondeu ({motivo}); o Claude estuda os clipes")
             est.log(f"modelos: {ctx.cl.modelo} (decide) · {biblioteca.motor_estudo()} (estuda cada B-roll novo, uma vez)"
                     + (f" · {gemini.modelo_padrao()} (confere)" if ok and ped.get("conferir") else ""))
         est.custo(custos.resumo(d))

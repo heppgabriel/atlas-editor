@@ -15,7 +15,7 @@ no navegador.
 **Mac ou Linux** — cole no Terminal:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/dankeeps/atlas-editor/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/heppgabriel/atlas-editor/main/install.sh | bash
 ```
 
 Requisitos: Python 3.12 e FFmpeg (o instalador tenta instalar sozinho via Homebrew
@@ -25,7 +25,7 @@ no Mac; no Linux, `sudo apt-get install -y python3.12 python3.12-venv ffmpeg`).
 vem com o Windows):
 
 ```powershell
-irm https://raw.githubusercontent.com/dankeeps/atlas-editor/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/heppgabriel/atlas-editor/main/install.ps1 | iex
 ```
 
 Requisitos: Git, Python 3.12 e FFmpeg (o instalador tenta instalar sozinho via
