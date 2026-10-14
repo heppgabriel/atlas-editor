@@ -28,16 +28,30 @@ function Atualizar-Path {
 }
 
 function Achar-Python312 {
-  if (Get-Command py -ErrorAction SilentlyContinue) {
-    $exe = & py -3.12 -c "import sys; print(sys.executable)" 2>$null
-    if ($LASTEXITCODE -eq 0 -and $exe) { return $exe.Trim() }
-  }
-  $cmd = Get-Command python -ErrorAction SilentlyContinue
-  if ($cmd) {
-    $ver = & python -c "import sys; print('%d.%d' % sys.version_info[:2])" 2>$null
-    if ($ver -eq "3.12") { return $cmd.Source }
-  }
-  return $null
+  # O "python" que vem no Windows sem Python instalado e um atalho da Microsoft Store: ele so imprime um
+  # erro. Com $ErrorActionPreference = "Stop" esse erro derrubava o instalador, por isso tudo aqui fica
+  # dentro de try/catch e o atalho da Store (pasta WindowsApps) e ignorado.
+  $antes = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+  try {
+    if (Get-Command py -ErrorAction SilentlyContinue) {
+      try {
+        $exe = & py -3.12 -c "import sys; print(sys.executable)" 2>$null
+        if ($LASTEXITCODE -eq 0 -and $exe) { return "$exe".Trim() }
+      } catch {}
+    }
+    foreach ($cmd in @(Get-Command python -All -ErrorAction SilentlyContinue)) {
+      if ($cmd.Source -like "*\WindowsApps\*") { continue }
+      try {
+        $ver = & $cmd.Source -c "import sys; print('%d.%d' % sys.version_info[:2])" 2>$null
+        if ("$ver".Trim() -eq "3.12") { return $cmd.Source }
+      } catch {}
+    }
+    foreach ($dir in @("$env:LOCALAPPDATA\Programs\Python\Python312", "$env:ProgramFiles\Python312")) {
+      $exe = Join-Path $dir "python.exe"
+      if (Test-Path $exe) { return $exe }
+    }
+    return $null
+  } finally { $ErrorActionPreference = $antes }
 }
 
 # 1. dependencias: git, python 3.12, ffmpeg
